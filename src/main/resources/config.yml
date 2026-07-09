@@ -42,7 +42,7 @@ generation:
   # slots can be cleaned by deleting .mca files on startup. Do not change on a
   # live server.
   slot-spacing: 2048
-  multi-floor-chance: 0.30
+  multi-floor-chance: 0.55
 
 # -------------------------------------------------------------------- party
 party:

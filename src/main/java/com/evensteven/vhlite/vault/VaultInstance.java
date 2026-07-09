@@ -158,6 +158,41 @@ public final class VaultInstance {
                 && y >= exit.y() && y <= exit.y() + 3;
     }
 
+    /**
+     * True if this generated block is part of the vault's outer skin: any
+     * face touching a position the generator never wrote (the void beyond).
+     * Player-placed blocks (no buffer entry at their own position) are never
+     * shell — players may always reclaim their own blocks.
+     */
+    public boolean isShellBlock(Vec3 rel) {
+        if (gen == null || gen.buffer.get(rel.x(), rel.y(), rel.z()) == null) {
+            return false;
+        }
+        return gen.buffer.get(rel.x() + 1, rel.y(), rel.z()) == null
+                || gen.buffer.get(rel.x() - 1, rel.y(), rel.z()) == null
+                || gen.buffer.get(rel.x(), rel.y() + 1, rel.z()) == null
+                || gen.buffer.get(rel.x(), rel.y() - 1, rel.z()) == null
+                || gen.buffer.get(rel.x(), rel.y(), rel.z() + 1) == null
+                || gen.buffer.get(rel.x(), rel.y(), rel.z() - 1) == null;
+    }
+
+    /** The exit pad and the defend beacon must survive enthusiastic miners. */
+    public boolean isProtectedFixture(Vec3 rel) {
+        if (gen == null) {
+            return false;
+        }
+        Vec3 exit = gen.exitCenter;
+        if (exit != null && Math.abs(rel.x() - exit.x()) <= 2 && Math.abs(rel.z() - exit.z()) <= 2
+                && rel.y() >= exit.y() && rel.y() <= exit.y() + 2) {
+            return true;
+        }
+        Vec3 defend = gen.defendPoint;
+        return blueprint.objective() == com.evensteven.vhlite.vault.objective.VaultObjective.DEFEND
+                && defend != null && Math.abs(rel.x() - defend.x()) <= 1
+                && Math.abs(rel.z() - defend.z()) <= 1
+                && rel.y() >= defend.y() - 1 && rel.y() <= defend.y() + 1;
+    }
+
     public void openExit() {
         if (exitOpen) {
             return;

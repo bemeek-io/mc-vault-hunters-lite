@@ -446,16 +446,47 @@ public final class VaultInstanceManager implements Listener {
         if (!worlds.isVaultWorld(event.getBlock().getWorld())) {
             return;
         }
-        event.setCancelled(true);
         VaultInstance instance = instanceOf(event.getPlayer());
-        if (instance != null && event.getBlock().getType() == Material.AMETHYST_CLUSTER) {
-            handleArtifactBreak(event.getPlayer(), event.getBlock(), instance);
+        if (instance == null || instance.state != VaultInstance.State.ACTIVE
+                || !instance.contains(event.getBlock().getLocation())) {
+            event.setCancelled(true);
+            return;
         }
+        if (event.getBlock().getType() == Material.AMETHYST_CLUSTER) {
+            event.setCancelled(true);
+            handleArtifactBreak(event.getPlayer(), event.getBlock(), instance);
+            return;
+        }
+        Vec3 rel = instance.relativeOf(event.getBlock().getLocation());
+        // Unopened objective chests must be OPENED (counted), not smashed.
+        if (instance.treasureLeft.contains(rel)) {
+            event.setCancelled(true);
+            event.getPlayer().sendActionBar(Text.c("§6Open this chest — don't break it."));
+            return;
+        }
+        if (instance.isProtectedFixture(rel)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (instance.isShellBlock(rel)) {
+            event.setCancelled(true);
+            event.getPlayer().sendActionBar(Text.c("§5The vault's outer walls resist you."));
+            return;
+        }
+        // Anything else — interior walls, decor, chests, player blocks — is
+        // fair game. Mine between rooms if you like; the shell keeps you in.
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
-        if (worlds.isVaultWorld(event.getBlock().getWorld())) {
+        if (!worlds.isVaultWorld(event.getBlock().getWorld())) {
+            return;
+        }
+        VaultInstance instance = instanceOf(event.getPlayer());
+        // Building inside your own live vault is allowed (bridges, pillars,
+        // cheeky mob cages); everything is wiped with the slot anyway.
+        if (instance == null || instance.state != VaultInstance.State.ACTIVE
+                || !instance.contains(event.getBlock().getLocation())) {
             event.setCancelled(true);
         }
     }

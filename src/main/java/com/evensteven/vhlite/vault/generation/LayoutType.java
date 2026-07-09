@@ -19,7 +19,10 @@ import java.util.Random;
  */
 public enum LayoutType {
 
-    /** A 6-8 room gauntlet: fight forward, objective at the end. */
+    /**
+     * A 6-8 room spine with 2-4 side branches hanging off it — a gauntlet
+     * that still rewards poking into the arms. Objective at the far end.
+     */
     LINEAR {
         @Override
         public RoomGraph plan(Random rng, boolean multiFloor) {
@@ -32,18 +35,41 @@ public enum LayoutType {
             for (int i = 0; i < length - 1; i++) {
                 graph.connect(new Cell(i, 0, 0), Dir.EAST);
             }
-            // One treasure room in the middle stretch.
-            graph.get(new Cell(1 + rng.nextInt(length - 2), 0, 0)).role = Role.TREASURE;
+            // Side branches: 1-2 rooms poking north/south off the spine,
+            // the deepest one holding treasure.
+            int branches = 2 + rng.nextInt(3);
+            for (int b = 0; b < branches; b++) {
+                int spine = 1 + rng.nextInt(length - 2);
+                Dir dir = rng.nextBoolean() ? Dir.NORTH : Dir.SOUTH;
+                Cell cur = new Cell(spine, 0, 0);
+                int arm = 1 + rng.nextInt(2);
+                for (int step = 0; step < arm; step++) {
+                    Cell next = cur.step(dir);
+                    if (graph.get(next) != null) {
+                        break;
+                    }
+                    graph.add(next, step == arm - 1 ? Role.TREASURE : Role.NORMAL);
+                    graph.connect(cur, dir);
+                    cur = next;
+                }
+            }
+            // Guarantee at least one treasure room even if every branch collided.
+            if (graph.withRole(Role.TREASURE).isEmpty()) {
+                graph.get(new Cell(1 + rng.nextInt(length - 2), 0, 0)).role = Role.TREASURE;
+            }
+            if (multiFloor) {
+                addSecondFloor(graph, rng);
+            }
             return graph;
         }
     },
 
-    /** A 5x5 maze: spanning tree plus a few loops, objective at max distance. */
+    /** A 4-6 wide maze: spanning tree plus a few loops, objective at max distance. */
     MAZE {
         @Override
         public RoomGraph plan(Random rng, boolean multiFloor) {
             RoomGraph graph = new RoomGraph();
-            int size = 5;
+            int size = 4 + rng.nextInt(3);
             for (int x = 0; x < size; x++) {
                 for (int z = 0; z < size; z++) {
                     graph.add(new Cell(x, z, 0), Role.NORMAL);
@@ -168,10 +194,11 @@ public enum LayoutType {
     }
 
     /**
-     * Grows a small upper floor: one NORMAL room becomes a ladder shaft with
-     * a twin above, and a short randomized branch of 3-5 rooms hangs off it.
-     * If the objective was on the ground floor it may migrate up, which makes
-     * multi-floor runs feel genuinely different.
+     * Grows an upper floor: one NORMAL room becomes a ladder shaft with a
+     * twin above, and a 4-7 room mini-layout grows off it by attaching each
+     * new room to a random existing upper room — so upstairs branches too,
+     * instead of being one hallway. Half the time the objective migrates up
+     * to the farthest upper room; otherwise that room holds treasure.
      */
     private static void addSecondFloor(RoomGraph graph, Random rng) {
         List<Room> normals = new ArrayList<>(graph.withRole(Role.NORMAL));
@@ -184,34 +211,55 @@ public enum LayoutType {
         Cell top = new Cell(base.x(), base.z(), 1);
         graph.add(top, Role.SHAFT);
 
-        Cell cur = top;
-        int branch = 3 + rng.nextInt(3);
-        List<Cell> added = new ArrayList<>();
-        for (int i = 0; i < branch; i++) {
-            List<Dir> options = new ArrayList<>();
-            for (Dir dir : Dir.values()) {
-                if (graph.get(cur.step(dir)) == null) {
-                    options.add(dir);
+        record Growth(Cell from, Dir dir) {
+        }
+        List<Cell> upper = new ArrayList<>();
+        upper.add(top);
+        int rooms = 4 + rng.nextInt(4);
+        for (int i = 0; i < rooms; i++) {
+            List<Growth> options = new ArrayList<>();
+            for (Cell from : upper) {
+                for (Dir dir : Dir.values()) {
+                    if (graph.get(from.step(dir)) == null) {
+                        options.add(new Growth(from, dir));
+                    }
                 }
             }
             if (options.isEmpty()) {
                 break;
             }
-            Dir dir = options.get(rng.nextInt(options.size()));
-            Cell next = cur.step(dir);
+            Growth pick = options.get(rng.nextInt(options.size()));
+            Cell next = pick.from().step(pick.dir());
             graph.add(next, Role.NORMAL);
-            graph.connect(cur, dir);
-            added.add(next);
-            cur = next;
+            graph.connect(pick.from(), pick.dir());
+            upper.add(next);
+            // Occasional extra doorway between adjacent upper rooms = loops.
+            for (Dir dir : Dir.values()) {
+                Cell around = next.step(dir);
+                if (graph.get(around) != null && around.floor() == 1
+                        && !graph.get(next).doors.contains(dir) && rng.nextDouble() < 0.15) {
+                    graph.connect(next, dir);
+                }
+            }
         }
-        if (!added.isEmpty() && rng.nextBoolean()) {
-            // Relocate the objective to the end of the upper branch.
+        if (upper.size() <= 1) {
+            return;
+        }
+        // Farthest upper room from the shaft gets the payoff.
+        Map<Cell, Integer> dist = graph.distancesFrom(top);
+        Cell far = top;
+        for (Cell cell : upper) {
+            if (dist.getOrDefault(cell, 0) > dist.getOrDefault(far, 0)) {
+                far = cell;
+            }
+        }
+        if (rng.nextBoolean()) {
             for (Room room : graph.withRole(Role.OBJECTIVE)) {
                 room.role = Role.NORMAL;
             }
-            graph.get(added.get(added.size() - 1)).role = Role.OBJECTIVE;
-        } else if (!added.isEmpty()) {
-            graph.get(added.get(added.size() - 1)).role = Role.TREASURE;
+            graph.get(far).role = Role.OBJECTIVE;
+        } else {
+            graph.get(far).role = Role.TREASURE;
         }
     }
 }

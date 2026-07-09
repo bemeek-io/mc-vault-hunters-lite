@@ -89,7 +89,7 @@ public final class VHLite extends JavaPlugin {
 
         ScalingService scaling = new ScalingService(getConfig());
         VaultGenerator generator = new VaultGenerator(
-                getConfig().getDouble("generation.multi-floor-chance", 0.30));
+                getConfig().getDouble("generation.multi-floor-chance", 0.55));
         BlockBufferApplier applier = new BlockBufferApplier(this,
                 getConfig().getInt("generation.blocks-per-tick", 20000));
         InstanceAllocator allocator = new InstanceAllocator(instanceStore,
@@ -118,9 +118,10 @@ public final class VHLite extends JavaPlugin {
         getCommand("vhadmin").setExecutor(vhadmin);
         getCommand("vhadmin").setTabCompleter(vhadmin);
 
-        // --- the only recurring work: 1s run tick, 2s spawner tick.
+        // --- recurring work: 1s run tick, 2s spawner tick, 1s XP-bar paint.
         new VaultRunTask(vaults, scaling, getConfig()).runTaskTimer(this, 20L, 20L);
         new MobSpawnerTask(vaults, scaling, getConfig()).runTaskTimer(this, 40L, 40L);
+        new com.evensteven.vhlite.player.XpBarTask(profiles, levels).runTaskTimer(this, 20L, 20L);
 
         getLogger().info("Vault Hunters Lite enabled. Altar block: "
                 + getConfig().getString("altar.block", "LODESTONE") + ".");

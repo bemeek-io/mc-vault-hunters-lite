@@ -34,7 +34,7 @@ public final class VaultGenerator {
 
     public GenResult generate(VaultBlueprint bp) {
         Random rng = new Random(bp.seed());
-        boolean multiFloor = bp.layout() != LayoutType.LINEAR && rng.nextDouble() < multiFloorChance;
+        boolean multiFloor = rng.nextDouble() < multiFloorChance;
         RoomGraph graph = bp.layout().plan(rng, multiFloor);
         if (!graph.fullyConnected()) {
             // Should be impossible; better a loud failure than a sealed room.
