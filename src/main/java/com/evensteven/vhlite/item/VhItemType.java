@@ -15,6 +15,12 @@ public enum VhItemType {
 
     VAULT_CRYSTAL(1001, Material.AMETHYST_SHARD, "§dVault Crystal",
             "§7Right-click a Vault Altar to open a vault."),
+    /**
+     * Legacy only: essence is now a profile-bound currency (see
+     * CurrencyService), never a physical item. This entry stays so
+     * pre-update items in old inventories/backpacks can still be detected
+     * and converted by the one-time join migration sweep.
+     */
     VAULT_ESSENCE(1002, Material.ECHO_SHARD, "§3Vault Essence",
             "§7Torn from vault creatures. Powers spirit revival."),
     KNOWLEDGE_STAR(1003, Material.NETHER_STAR, "§bKnowledge Star",

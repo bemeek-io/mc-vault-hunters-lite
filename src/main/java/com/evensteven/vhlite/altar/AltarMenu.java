@@ -1,7 +1,9 @@
 package com.evensteven.vhlite.altar;
 
 import com.evensteven.vhlite.item.VhItemType;
+import com.evensteven.vhlite.knowledge.ResearchNode;
 import com.evensteven.vhlite.menu.Menu;
+import com.evensteven.vhlite.player.CurrencyService;
 import com.evensteven.vhlite.player.PlayerProfile;
 import com.evensteven.vhlite.player.ProfileStore;
 import com.evensteven.vhlite.spirit.RevivalMenu;
@@ -27,16 +29,18 @@ public final class AltarMenu extends Menu {
     private final SpiritStore spirits;
     private final FileConfiguration config;
     private final com.evensteven.vhlite.quest.QuestService quests;
+    private final CurrencyService currency;
 
     public AltarMenu(Player viewer, ProfileStore profiles, CrystalRecipeService recipes,
             SpiritStore spirits, FileConfiguration config,
-            com.evensteven.vhlite.quest.QuestService quests) {
+            com.evensteven.vhlite.quest.QuestService quests, CurrencyService currency) {
         super(viewer, 3, "§5Vault Altar");
         this.profiles = profiles;
         this.recipes = recipes;
         this.spirits = spirits;
         this.config = config;
         this.quests = quests;
+        this.currency = currency;
     }
 
     @Override
@@ -46,7 +50,9 @@ public final class AltarMenu extends Menu {
 
         icon(4, named(Material.LODESTONE, "§5Vault Altar",
                 "§7Your vault level: §d" + profile.vaultLevel,
-                "§7The altar asks for what the vault senses", "§7you can gather. It changes as you grow."));
+                "§7The altar asks for what the vault senses", "§7you can gather. It changes as you grow.",
+                "§7Essence: §3" + currency.essenceOf(viewer),
+                "§7Gold: §6" + currency.formatGold(currency.goldOf(viewer))));
 
         int[] slots = {10, 11, 12, 13};
         for (int i = 0; i < reqs.size() && i < slots.length; i++) {
@@ -83,12 +89,26 @@ public final class AltarMenu extends Menu {
                     }
                 });
 
+        boolean catalystsResearched = profile.has(ResearchNode.CATALYSTS);
+        button(14, named(Material.PRISMARINE_SHARD,
+                        catalystsResearched ? "§5Catalysts" : "§8Catalysts §7(locked)",
+                        catalystsResearched
+                                ? "§7Spend Vault Essence for a catalyst" : "§7Research §dCatalysts§7 to unlock.",
+                        catalystsResearched ? "§7that forces a chosen run modifier." : ""),
+                event -> {
+                    if (catalystsResearched) {
+                        new CatalystMenu(viewer, currency, config).open(viewer);
+                    } else {
+                        viewer.sendMessage(Text.c("§cResearch §dCatalysts§c first. §7(/vh knowledge)"));
+                    }
+                });
+
         int spiritCount = spirits.spiritsOf(viewer.getUniqueId()).size();
         button(16, named(Material.SOUL_LANTERN,
                         spiritCount > 0 ? "§3Spirits §b(" + spiritCount + " waiting)" : "§8Spirits §7(none)",
                         "§7Fallen in a vault? Pay §3Vault Essence",
                         "§7here to call your gear back."),
-                event -> new RevivalMenu(viewer, spirits, config).open(viewer));
+                event -> new RevivalMenu(viewer, spirits, config, currency).open(viewer));
 
         fillRow(0, Material.PURPLE_STAINED_GLASS_PANE);
         fillRow(2, Material.PURPLE_STAINED_GLASS_PANE);

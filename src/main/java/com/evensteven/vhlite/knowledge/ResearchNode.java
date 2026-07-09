@@ -20,7 +20,7 @@ public enum ResearchNode {
     ABILITY_WARCRY("ability-warcry", Material.BLAZE_POWDER, "§cAbility: Warcry",
             "§7An item that emboldens nearby allies.", "§8Claimed from this menu once researched."),
     CATALYSTS("catalysts", Material.PRISMARINE_SHARD, "§5Catalysts",
-            "§7Craft catalysts that force chosen", "§7modifiers onto your vault crystals.");
+            "§7Buy catalysts with Vault Essence at the", "§7altar to force modifiers onto crystals.");
 
     public final String configKey;
     public final Material icon;

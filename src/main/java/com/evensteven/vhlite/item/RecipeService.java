@@ -28,7 +28,7 @@ import java.util.Map;
 /**
  * Registers every crafting recipe and enforces two rules the vanilla table
  * can't: recipes stay locked until their knowledge node is researched, and
- * "shaped like" ingredients (echo shards, amethyst shards) must actually be
+ * "shaped like" ingredients (amethyst/prismarine shards) must actually be
  * the custom items, not their vanilla lookalikes.
  */
 public final class RecipeService implements Listener {
@@ -84,13 +84,9 @@ public final class RecipeService implements Listener {
         star.setIngredient('B', Material.BOOK);
         add(star, null); // knowledge begets knowledge; never gated
 
-        // Catalysts: 3 vault essence + a thematic reagent.
-        catalystRecipe(VaultModifier.RUSH, Material.SUGAR);
-        catalystRecipe(VaultModifier.PLENTIFUL, Material.GOLD_INGOT);
-        catalystRecipe(VaultModifier.CHAOS, Material.ROTTEN_FLESH);
-        catalystRecipe(VaultModifier.GILDED, Material.GOLD_BLOCK);
-        catalystRecipe(VaultModifier.FRAGILE, Material.GLASS);
-        catalystRecipe(VaultModifier.FRENZY, Material.REDSTONE);
+        // Catalysts themselves are bought with Vault Essence at the altar
+        // (CatalystMenu) now that essence is a currency, not a craftable
+        // ingredient — no table recipe for them.
 
         // Crystal + catalyst -> crystal with the forced modifier.
         combineKey = key("combine_crystal");
@@ -98,14 +94,6 @@ public final class RecipeService implements Listener {
         combine.addIngredient(Material.AMETHYST_SHARD);
         combine.addIngredient(Material.PRISMARINE_SHARD);
         add(combine, ResearchNode.CATALYSTS);
-    }
-
-    private void catalystRecipe(VaultModifier modifier, Material reagent) {
-        ShapelessRecipe recipe = new ShapelessRecipe(
-                key("catalyst_" + modifier.name().toLowerCase()), VhItems.catalyst(modifier));
-        recipe.addIngredient(3, Material.ECHO_SHARD);
-        recipe.addIngredient(reagent);
-        add(recipe, ResearchNode.CATALYSTS);
     }
 
     private void add(Recipe recipe, ResearchNode gate) {
@@ -150,8 +138,8 @@ public final class RecipeService implements Listener {
             return;
         }
 
-        // Lookalike guard: every echo/amethyst/prismarine shard in the grid
-        // must be the real custom item.
+        // Lookalike guard: every amethyst/prismarine shard in the grid must
+        // be the real custom item.
         ItemStack crystal = null;
         ItemStack catalyst = null;
         for (ItemStack item : event.getInventory().getMatrix()) {
@@ -159,10 +147,6 @@ public final class RecipeService implements Listener {
                 continue;
             }
             VhItemType type = VhItems.typeOf(item);
-            if (item.getType() == Material.ECHO_SHARD && type != VhItemType.VAULT_ESSENCE) {
-                event.getInventory().setResult(null);
-                return;
-            }
             if (item.getType() == Material.AMETHYST_SHARD) {
                 if (type != VhItemType.VAULT_CRYSTAL) {
                     if (recipeKey.equals(combineKey)) {

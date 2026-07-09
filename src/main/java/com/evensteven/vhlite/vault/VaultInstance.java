@@ -68,6 +68,8 @@ public final class VaultInstance {
     public final Set<Vec3> artifactsLeft = new HashSet<>();
     public final Set<Vec3> treasureLeft = new HashSet<>();
     public final Set<Vec3> chestsOpened = new HashSet<>();
+    /** Vault Gold (copper units) rolled for each chest, paid on first open. */
+    public final Map<Vec3, Long> chestGold = new HashMap<>();
     public UUID bossId;
     public boolean defendStarted;
     public int wave;

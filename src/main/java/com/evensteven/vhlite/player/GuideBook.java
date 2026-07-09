@@ -48,7 +48,9 @@ public final class GuideBook {
 
                             §cNo natural healing inside.§0 Bring food, potions, and nerve.
 
-                            Dying or running out of time ends your run. Low-level vaults forgive it; higher vaults trap your items in a §3Spirit§0 — buy it back at the altar with §3Vault Essence§0 from vault mobs and chests."""),
+                            Dying or running out of time ends your run. Low-level vaults forgive it; higher vaults trap your items in a §3Spirit§0 — buy it back at the altar with §3Vault Essence§0, earned from vault kills.
+
+                            §6Vault Gold§0 (copper/silver/gold/platinum) turns up in loot instead — both live on your profile, not in your bag. Check §0/vh stats§0."""),
                     page("""
                             §5§l4. Growing§0
 

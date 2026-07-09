@@ -51,8 +51,12 @@ public final class LootRoller {
     /**
      * @param fortuneBonus additive roll multiplier from the party's Fortune
      *                     stat (e.g. 0.4 for 10 points at 4%/pt).
+     * @return Vault Gold (in copper units) found in this chest, credited to
+     *         whoever opens it — 0 most of the time. Gold has no physical
+     *         item form, so it can't be placed in the inventory like the
+     *         rest of the roll.
      */
-    public void fill(Inventory inv, int level, double lootMult, boolean treasure,
+    public long fill(Inventory inv, int level, double lootMult, boolean treasure,
             double fortuneBonus, Random rng) {
         int rolls = (int) Math.round((3 + level / 5.0 + (treasure ? 4 : 0))
                 * lootMult * (1.0 + fortuneBonus));
@@ -61,18 +65,34 @@ public final class LootRoller {
             ItemStack item = rollItem(level, treasure, rng);
             inv.setItem(rng.nextInt(inv.getSize()), item);
         }
-        // Every vault chest carries a taste of essence; treasure guarantees it.
-        if (treasure || rng.nextInt(3) == 0) {
-            ItemStack essence = VhItems.create(VhItemType.VAULT_ESSENCE);
-            essence.setAmount(1 + rng.nextInt(treasure ? 4 : 2));
-            inv.setItem(rng.nextInt(inv.getSize()), essence);
-        }
         // Vaultforged gear is a RARE chest find — the reliable source is the
         // Vault Crate every completion pays out.
         if (rng.nextDouble() < (treasure ? 0.10 : 0.02) * lootMult) {
             inv.setItem(rng.nextInt(inv.getSize()),
                     com.evensteven.vhlite.item.VaultGear.unidentified(level, rng, treasure ? 0.15 : 0.0));
         }
+        return rollGold(level, treasure, lootMult, fortuneBonus, rng);
+    }
+
+    private long rollGold(int level, boolean treasure, double lootMult, double fortuneBonus, Random rng) {
+        double chance = (treasure ? 0.55 : 0.30) * lootMult;
+        if (rng.nextDouble() > chance) {
+            return 0;
+        }
+        int copper = 1 + rng.nextInt(2 + level / 3);
+        copper = (int) Math.round(copper * (1.0 + fortuneBonus));
+        if (treasure) {
+            copper *= 2 + rng.nextInt(3);
+        }
+        // Occasional windfalls jump a whole tier or two, so gold isn't just
+        // a slow copper trickle.
+        if (rng.nextInt(12) == 0) {
+            copper *= 9;
+        }
+        if (rng.nextInt(60) == 0) {
+            copper *= 81;
+        }
+        return Math.max(1, copper);
     }
 
     private ItemStack rollItem(int level, boolean treasure, Random rng) {

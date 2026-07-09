@@ -31,10 +31,12 @@ public final class AltarListener implements Listener {
     private final VaultInstanceManager vaults;
     private final AltarStore altars;
     private final com.evensteven.vhlite.quest.QuestService quests;
+    private final com.evensteven.vhlite.player.CurrencyService currency;
 
     public AltarListener(FileConfiguration config, ProfileStore profiles,
             CrystalRecipeService recipes, SpiritStore spirits, VaultInstanceManager vaults,
-            AltarStore altars, com.evensteven.vhlite.quest.QuestService quests) {
+            AltarStore altars, com.evensteven.vhlite.quest.QuestService quests,
+            com.evensteven.vhlite.player.CurrencyService currency) {
         this.config = config;
         this.profiles = profiles;
         this.recipes = recipes;
@@ -42,6 +44,7 @@ public final class AltarListener implements Listener {
         this.vaults = vaults;
         this.altars = altars;
         this.quests = quests;
+        this.currency = currency;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -87,6 +90,6 @@ public final class AltarListener implements Listener {
             }
             return;
         }
-        new AltarMenu(player, profiles, recipes, spirits, config, quests).open(player);
+        new AltarMenu(player, profiles, recipes, spirits, config, quests, currency).open(player);
     }
 }

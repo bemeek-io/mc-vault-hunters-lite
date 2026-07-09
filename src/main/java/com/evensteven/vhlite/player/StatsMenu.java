@@ -24,15 +24,18 @@ public final class StatsMenu extends Menu {
     private final PartyService parties;
     private final SpiritStore spirits;
     private final FileConfiguration config;
+    private final CurrencyService currency;
 
     public StatsMenu(Player viewer, ProfileStore profiles, LevelService levels,
-            PartyService parties, SpiritStore spirits, FileConfiguration config) {
+            PartyService parties, SpiritStore spirits, FileConfiguration config,
+            CurrencyService currency) {
         super(viewer, 4, "§dVault Profile");
         this.profiles = profiles;
         this.levels = levels;
         this.parties = parties;
         this.spirits = spirits;
         this.config = config;
+        this.currency = currency;
     }
 
     @Override
@@ -74,6 +77,13 @@ public final class StatsMenu extends Menu {
         icon(23, named(Material.SOUL_LANTERN,
                 spiritCount > 0 ? "§3Spirits waiting: §b" + spiritCount : "§3No trapped spirits",
                 spiritCount > 0 ? "§7Revive them at a Vault Altar." : "§7Keep it that way."));
+
+        icon(19, named(Material.ECHO_SHARD, "§3Vault Essence: §b" + currency.essenceOf(viewer),
+                "§7Earned from vault kills.", "§7Spent reviving spirits at the altar."));
+        icon(25, named(Material.GOLD_NUGGET, "§6Vault Gold",
+                "§7" + currency.formatGold(currency.goldOf(viewer)),
+                "§7Found in vault loot. §89 copper = 1 silver,",
+                "§89 silver = 1 gold, 9 gold = 1 platinum."));
 
         fillRow(0, Material.MAGENTA_STAINED_GLASS_PANE);
         fillRow(3, Material.MAGENTA_STAINED_GLASS_PANE);

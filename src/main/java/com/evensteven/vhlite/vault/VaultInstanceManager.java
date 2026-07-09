@@ -74,6 +74,7 @@ public final class VaultInstanceManager implements Listener {
     private final PartyService parties;
     private final SpiritStore spirits;
     private final com.evensteven.vhlite.quest.QuestService quests;
+    private final com.evensteven.vhlite.player.CurrencyService currency;
     private final Random random = new Random();
 
     private final Map<UUID, VaultInstance> instances = new HashMap<>();
@@ -83,7 +84,8 @@ public final class VaultInstanceManager implements Listener {
             InstanceAllocator allocator, InstanceStore store, ThemeRegistry themes,
             VaultGenerator generator, BlockBufferApplier applier, ScalingService scaling,
             ProfileStore profiles, LevelService levels, PartyService parties, SpiritStore spirits,
-            com.evensteven.vhlite.quest.QuestService quests) {
+            com.evensteven.vhlite.quest.QuestService quests,
+            com.evensteven.vhlite.player.CurrencyService currency) {
         this.plugin = plugin;
         this.config = config;
         this.worlds = worlds;
@@ -98,6 +100,7 @@ public final class VaultInstanceManager implements Listener {
         this.parties = parties;
         this.spirits = spirits;
         this.quests = quests;
+        this.currency = currency;
     }
 
     // ------------------------------------------------------------ run start
@@ -200,9 +203,12 @@ public final class VaultInstanceManager implements Listener {
         }
         for (GenResult.ChestSpot spot : instance.gen.chests) {
             if (instance.blockAt(spot.pos()).getState() instanceof Container container) {
-                lootRoller.fill(container.getInventory(), bp.level(), lootMult, spot.treasure(),
+                long gold = lootRoller.fill(container.getInventory(), bp.level(), lootMult, spot.treasure(),
                         fortune, new Random(bp.seed() ^ com.evensteven.vhlite.vault.generation.BlockBuffer
                                 .pack(spot.pos().x(), spot.pos().y(), spot.pos().z())));
+                if (gold > 0) {
+                    instance.chestGold.put(spot.pos(), gold);
+                }
             }
         }
     }
@@ -575,6 +581,10 @@ public final class VaultInstanceManager implements Listener {
         if (instance.chestsOpened.add(rel)) {
             levels.addXp(player, config.getInt("xp.per-chest", 5));
             quests.progress(player, com.evensteven.vhlite.quest.QuestType.LOOTER, 1);
+            Long gold = instance.chestGold.remove(rel);
+            if (gold != null && gold > 0) {
+                currency.addGold(player, gold);
+            }
         }
         if (instance.treasureLeft.remove(rel)) {
             int done = instance.objectiveTarget - instance.treasureLeft.size();
@@ -613,7 +623,7 @@ public final class VaultInstanceManager implements Listener {
             double essenceChance = 0.20 * (1.0 + com.evensteven.vhlite.item.VaultGear.affixSum(
                     killer, com.evensteven.vhlite.item.VaultGear.Affix.ESSENCE_HOARDER));
             if (instance.rng.nextDouble() < essenceChance) {
-                event.getDrops().add(VhItems.create(VhItemType.VAULT_ESSENCE));
+                currency.addEssence(killer, 1);
             }
             double secondWind = com.evensteven.vhlite.item.VaultGear.affixSum(
                     killer, com.evensteven.vhlite.item.VaultGear.Affix.SECOND_WIND);
@@ -624,13 +634,11 @@ public final class VaultInstanceManager implements Listener {
             }
             quests.progress(killer, com.evensteven.vhlite.quest.QuestType.CULLER, 1);
             if (event.getEntity().getUniqueId().equals(instance.bossId)) {
+                currency.addEssence(killer, 5);
                 quests.progress(killer, com.evensteven.vhlite.quest.QuestType.GUARDIAN_BANE, 1);
             }
         }
         if (event.getEntity().getUniqueId().equals(instance.bossId)) {
-            org.bukkit.inventory.ItemStack essence = VhItems.create(VhItemType.VAULT_ESSENCE);
-            essence.setAmount(5);
-            event.getDrops().add(essence);
             event.getDrops().add(VhItems.catalyst(
                     VaultModifier.values()[instance.rng.nextInt(VaultModifier.values().length)]));
             // The guardian always yields a sealed piece of Vaultforged gear.

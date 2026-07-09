@@ -39,13 +39,15 @@ public final class VhCommand implements TabExecutor {
     private final org.bukkit.configuration.file.FileConfiguration config;
     private final com.evensteven.vhlite.quest.QuestService quests;
     private final com.evensteven.vhlite.player.HudService hud;
+    private final com.evensteven.vhlite.player.CurrencyService currency;
 
     public VhCommand(ProfileStore profiles, StatService stats, KnowledgeService knowledge,
             ChestLinkService links, ChatPrompt prompts, SpiritStore spirits, LevelService levels,
             PartyService parties, VaultInstanceManager vaults,
             org.bukkit.configuration.file.FileConfiguration config,
             com.evensteven.vhlite.quest.QuestService quests,
-            com.evensteven.vhlite.player.HudService hud) {
+            com.evensteven.vhlite.player.HudService hud,
+            com.evensteven.vhlite.player.CurrencyService currency) {
         this.profiles = profiles;
         this.stats = stats;
         this.knowledge = knowledge;
@@ -58,6 +60,7 @@ public final class VhCommand implements TabExecutor {
         this.config = config;
         this.quests = quests;
         this.hud = hud;
+        this.currency = currency;
     }
 
     @Override
@@ -68,12 +71,12 @@ public final class VhCommand implements TabExecutor {
         }
         if (args.length == 0) {
             new HubMenu(player, profiles, stats, knowledge, links, prompts, spirits,
-                    levels, parties, config, quests).open(player);
+                    levels, parties, config, quests, currency).open(player);
             return true;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "stats" -> new com.evensteven.vhlite.player.StatsMenu(
-                    player, profiles, levels, parties, spirits, config).open(player);
+                    player, profiles, levels, parties, spirits, config, currency).open(player);
             case "skills" -> new SkillMenu(player, profiles, stats).open(player);
             case "knowledge" -> new KnowledgeMenu(player, profiles, knowledge).open(player);
             case "storage" -> {

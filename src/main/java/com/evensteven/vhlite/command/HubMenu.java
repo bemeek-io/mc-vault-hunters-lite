@@ -32,13 +32,15 @@ public final class HubMenu extends Menu {
     private final com.evensteven.vhlite.player.PartyService parties;
     private final org.bukkit.configuration.file.FileConfiguration config;
     private final com.evensteven.vhlite.quest.QuestService quests;
+    private final com.evensteven.vhlite.player.CurrencyService currency;
 
     public HubMenu(Player viewer, ProfileStore profiles, StatService stats,
             KnowledgeService knowledge, ChestLinkService links, ChatPrompt prompts,
             SpiritStore spirits, com.evensteven.vhlite.player.LevelService levels,
             com.evensteven.vhlite.player.PartyService parties,
             org.bukkit.configuration.file.FileConfiguration config,
-            com.evensteven.vhlite.quest.QuestService quests) {
+            com.evensteven.vhlite.quest.QuestService quests,
+            com.evensteven.vhlite.player.CurrencyService currency) {
         super(viewer, 3, "§5Vault Hunters");
         this.profiles = profiles;
         this.stats = stats;
@@ -50,6 +52,7 @@ public final class HubMenu extends Menu {
         this.parties = parties;
         this.config = config;
         this.quests = quests;
+        this.currency = currency;
     }
 
     @Override
@@ -60,12 +63,14 @@ public final class HubMenu extends Menu {
                 "§7XP: §e" + profile.vaultXp + "§7/§e" + levels.xpForLevel(profile.vaultLevel),
                 "§7Skill points: §e" + profile.skillPoints,
                 "§7Knowledge points: §b" + profile.knowledgePoints,
+                "§7Essence: §3" + currency.essenceOf(viewer)
+                        + " §7Gold: §6" + currency.formatGold(currency.goldOf(viewer)),
                 "§8Forge crystals at a Vault Altar (lodestone)."));
 
         button(10, named(Material.PLAYER_HEAD, "§dVault Profile",
                         "§7Your full character sheet: level,", "§7stats, research, and spirits."),
                 event -> new com.evensteven.vhlite.player.StatsMenu(
-                        viewer, profiles, levels, parties, spirits, config).open(viewer));
+                        viewer, profiles, levels, parties, spirits, config, currency).open(viewer));
 
         button(11, named(Material.IRON_SWORD, "§cSkills",
                         "§7Invest points into Strength, Vitality,", "§7Swiftness, Fortune, Resilience."),

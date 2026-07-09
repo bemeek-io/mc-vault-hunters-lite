@@ -14,7 +14,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.Random;
 
@@ -29,10 +28,12 @@ public final class QuestService implements Listener {
     private static final int WINDOW = 3;
 
     private final ProfileStore profiles;
+    private final com.evensteven.vhlite.player.CurrencyService currency;
     private final Random random = new Random();
 
-    public QuestService(ProfileStore profiles) {
+    public QuestService(ProfileStore profiles, com.evensteven.vhlite.player.CurrencyService currency) {
         this.profiles = profiles;
+        this.currency = currency;
     }
 
     public boolean isUnlocked(PlayerProfile profile, QuestType quest) {
@@ -134,9 +135,7 @@ public final class QuestService implements Listener {
     }
 
     private void giveEssence(Player player, int amount) {
-        ItemStack essence = VhItems.create(VhItemType.VAULT_ESSENCE);
-        essence.setAmount(amount);
-        VhItems.give(player, essence);
+        currency.addEssence(player, amount, false); // the quest-complete toast already fires
     }
 
     private void giveStars(Player player, int amount) {

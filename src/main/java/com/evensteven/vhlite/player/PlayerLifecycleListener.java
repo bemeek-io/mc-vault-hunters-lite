@@ -19,15 +19,17 @@ public final class PlayerLifecycleListener implements Listener {
     private final RecipeService recipes;
     private final PartyService parties;
     private final com.evensteven.vhlite.quest.QuestService quests;
+    private final CurrencyService currency;
 
     public PlayerLifecycleListener(ProfileStore profiles, StatService stats,
             RecipeService recipes, PartyService parties,
-            com.evensteven.vhlite.quest.QuestService quests) {
+            com.evensteven.vhlite.quest.QuestService quests, CurrencyService currency) {
         this.profiles = profiles;
         this.stats = stats;
         this.recipes = recipes;
         this.parties = parties;
         this.quests = quests;
+        this.currency = currency;
     }
 
     @EventHandler
@@ -36,6 +38,7 @@ public final class PlayerLifecycleListener implements Listener {
         stats.apply(event.getPlayer());
         recipes.syncDiscovered(event.getPlayer());
         quests.syncLevelMilestones(event.getPlayer());
+        currency.migrateLegacyEssenceItems(event.getPlayer());
         if (!profile.guideGiven) {
             profile.guideGiven = true;
             profiles.save(profile);

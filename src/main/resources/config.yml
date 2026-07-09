@@ -24,6 +24,8 @@ altar:
     1: [GOLD_INGOT, ENDER_PEARL, GLOW_BERRIES, REDSTONE, LAPIS_LAZULI, HONEY_BOTTLE]
     2: [DIAMOND, BLAZE_ROD, AMETHYST_SHARD, OBSIDIAN, GHAST_TEAR, EMERALD]
     3: [NETHERITE_SCRAP, SHULKER_SHELL, WITHER_SKELETON_SKULL, TOTEM_OF_UNDYING, DRAGON_BREATH, SCULK]
+  # Vault Essence cost of one catalyst at the altar's Catalysts shop.
+  catalyst-essence-cost: 15
 
 # -------------------------------------------------------------------- vault
 vault:

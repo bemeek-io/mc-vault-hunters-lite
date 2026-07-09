@@ -21,6 +21,9 @@ public final class PlayerProfile {
     public int vaultXp;
     public int skillPoints;
     public int knowledgePoints;
+    /** Currencies tied to the profile, not the inventory — no slots, no drop risk. */
+    public long vaultEssence;
+    public long vaultGoldCopper;
     public final Map<StatType, Integer> stats = new EnumMap<>(StatType.class);
     public final Set<ResearchNode> research = EnumSet.noneOf(ResearchNode.class);
     /** One-time hand-outs and quest bookkeeping. */

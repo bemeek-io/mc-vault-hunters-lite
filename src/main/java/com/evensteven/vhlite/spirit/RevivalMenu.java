@@ -1,8 +1,7 @@
 package com.evensteven.vhlite.spirit;
 
-import com.evensteven.vhlite.item.VhItemType;
-import com.evensteven.vhlite.item.VhItems;
 import com.evensteven.vhlite.menu.PagedMenu;
+import com.evensteven.vhlite.player.CurrencyService;
 import com.evensteven.vhlite.util.Text;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -15,17 +14,19 @@ import java.util.List;
 
 /**
  * The altar's spirit tab: every spirit you've lost, its essence price, and
- * one click to buy it back (if you brought the essence).
+ * one click to buy it back (if your balance covers it).
  */
 public final class RevivalMenu extends PagedMenu<SpiritStore.Spirit> {
 
     private final SpiritStore spirits;
     private final FileConfiguration config;
+    private final CurrencyService currency;
 
-    public RevivalMenu(Player viewer, SpiritStore spirits, FileConfiguration config) {
+    public RevivalMenu(Player viewer, SpiritStore spirits, FileConfiguration config, CurrencyService currency) {
         super(viewer, "§3Spirit Revival");
         this.spirits = spirits;
         this.config = config;
+        this.currency = currency;
     }
 
     private int costOf(SpiritStore.Spirit spirit) {
@@ -42,13 +43,13 @@ public final class RevivalMenu extends PagedMenu<SpiritStore.Spirit> {
     protected ItemStack iconFor(SpiritStore.Spirit spirit) {
         long itemCount = spirit.items().stream().filter(java.util.Objects::nonNull).count();
         int cost = costOf(spirit);
-        int carrying = VhItems.count(viewer, VhItemType.VAULT_ESSENCE);
+        long carrying = currency.essenceOf(viewer);
         ItemStack icon = new ItemStack(Material.SOUL_LANTERN);
         icon.editMeta(meta -> {
             meta.displayName(Text.item("§3Spirit §7— vault level " + spirit.level()));
             meta.lore(Text.lore(
                     "§7Holding §e" + itemCount + "§7 item stacks and §e" + spirit.xpLevels() + "§7 XP levels",
-                    "§7Price: §3" + cost + " Vault Essence §7(you carry " + carrying + ")",
+                    "§7Price: §3" + cost + " Vault Essence §7(you have " + carrying + ")",
                     carrying >= cost ? "§a✔ Click to revive" : "§c✘ Not enough essence"));
         });
         return icon;
@@ -57,7 +58,7 @@ public final class RevivalMenu extends PagedMenu<SpiritStore.Spirit> {
     @Override
     protected void onEntryClick(SpiritStore.Spirit spirit, InventoryClickEvent event) {
         int cost = costOf(spirit);
-        if (!VhItems.consume(viewer, VhItemType.VAULT_ESSENCE, cost)) {
+        if (!currency.spendEssence(viewer, cost)) {
             viewer.sendMessage(Text.c("§cYou need §3" + cost + " Vault Essence§c."));
             viewer.playSound(viewer.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.6f);
             return;
@@ -70,6 +71,6 @@ public final class RevivalMenu extends PagedMenu<SpiritStore.Spirit> {
 
     @Override
     protected String infoLine() {
-        return "§7Essence drops from vault monsters and chests.";
+        return "§7Essence comes from vault kills. Gold is found in loot.";
     }
 }

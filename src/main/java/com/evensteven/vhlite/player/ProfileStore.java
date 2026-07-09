@@ -76,6 +76,8 @@ public final class ProfileStore {
         profile.vaultXp = data.getInt("vault-xp", 0);
         profile.skillPoints = data.getInt("skill-points", 0);
         profile.knowledgePoints = data.getInt("knowledge-points", 0);
+        profile.vaultEssence = data.getLong("vault-essence", 0);
+        profile.vaultGoldCopper = data.getLong("vault-gold-copper", 0);
         for (StatType stat : StatType.values()) {
             profile.stats.put(stat, data.getInt("stats." + stat.name().toLowerCase(), 0));
         }
@@ -105,6 +107,8 @@ public final class ProfileStore {
         data.set("vault-xp", profile.vaultXp);
         data.set("skill-points", profile.skillPoints);
         data.set("knowledge-points", profile.knowledgePoints);
+        data.set("vault-essence", profile.vaultEssence);
+        data.set("vault-gold-copper", profile.vaultGoldCopper);
         for (StatType stat : StatType.values()) {
             data.set("stats." + stat.name().toLowerCase(), profile.stat(stat));
         }

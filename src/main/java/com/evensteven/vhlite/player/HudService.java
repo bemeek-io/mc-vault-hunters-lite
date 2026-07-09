@@ -24,15 +24,17 @@ import java.util.UUID;
  */
 public final class HudService extends BukkitRunnable {
 
-    private static final int LINES = 7;
+    private static final int LINES = 8;
 
     private final ProfileStore profiles;
     private final LevelService levels;
+    private final CurrencyService currency;
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
 
-    public HudService(ProfileStore profiles, LevelService levels) {
+    public HudService(ProfileStore profiles, LevelService levels, CurrencyService currency) {
         this.profiles = profiles;
         this.levels = levels;
+        this.currency = currency;
     }
 
     @Override
@@ -78,6 +80,8 @@ public final class HudService extends BukkitRunnable {
                         + " §8(" + profile.vaultXp + "/" + levels.xpForLevel(profile.vaultLevel) + ")",
                 "§7Skill pts §e" + profile.skillPoints
                         + " §7Knowl. §b" + profile.knowledgePoints,
+                "§3Ess §f" + profile.vaultEssence
+                        + "  §6Au §f" + currency.formatGoldShort(profile.vaultGoldCopper),
                 "§8" + "─".repeat(16),
                 "§cStr §f" + profile.stat(StatType.STRENGTH)
                         + "  §6Vit §f" + profile.stat(StatType.VITALITY),

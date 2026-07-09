@@ -30,17 +30,19 @@ public final class ItemUseListener implements Listener {
     private final BackpackService backpacks;
     private final ChestLinkService links;
     private final IdentifyService identify;
+    private final com.evensteven.vhlite.player.CurrencyService currency;
     private final java.util.Random random = new java.util.Random();
 
     public ItemUseListener(ProfileStore profiles, KnowledgeService knowledge,
             AbilityService abilities, BackpackService backpacks, ChestLinkService links,
-            IdentifyService identify) {
+            IdentifyService identify, com.evensteven.vhlite.player.CurrencyService currency) {
         this.profiles = profiles;
         this.knowledge = knowledge;
         this.abilities = abilities;
         this.backpacks = backpacks;
         this.links = links;
         this.identify = identify;
+        this.currency = currency;
     }
 
     @EventHandler
@@ -108,9 +110,7 @@ public final class ItemUseListener implements Listener {
         player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_BARREL_OPEN, 1f, 0.9f);
         player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ITEM_PICKUP, 1f, 0.7f);
         VhItems.give(player, VaultGear.unidentified(level, random, 0.5));
-        ItemStack essence = VhItems.create(VhItemType.VAULT_ESSENCE);
-        essence.setAmount(2 + random.nextInt(3));
-        VhItems.give(player, essence);
+        currency.addEssence(player, 2 + random.nextInt(3));
         if (random.nextInt(4) == 0) {
             VhItems.give(player, VhItems.catalyst(
                     com.evensteven.vhlite.vault.modifier.VaultModifier.values()[random.nextInt(

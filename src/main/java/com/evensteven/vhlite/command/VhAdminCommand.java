@@ -29,14 +29,17 @@ public final class VhAdminCommand implements TabExecutor {
     private final StatService stats;
     private final VaultInstanceManager vaults;
     private final InstanceStore store;
+    private final com.evensteven.vhlite.player.CurrencyService currency;
 
     public VhAdminCommand(JavaPlugin plugin, ProfileStore profiles, StatService stats,
-            VaultInstanceManager vaults, InstanceStore store) {
+            VaultInstanceManager vaults, InstanceStore store,
+            com.evensteven.vhlite.player.CurrencyService currency) {
         this.plugin = plugin;
         this.profiles = profiles;
         this.stats = stats;
         this.vaults = vaults;
         this.store = store;
+        this.currency = currency;
     }
 
     @Override
@@ -71,18 +74,15 @@ public final class VhAdminCommand implements TabExecutor {
             return;
         }
         if (args.length < 2) {
-            sender.sendMessage(Text.c("§7/vhadmin give <crystal|essence|star|backpack|wand|"
+            sender.sendMessage(Text.c("§7/vhadmin give <crystal|essence|gold|star|backpack|wand|"
                     + "catalyst_<mod>|heal|dash|warcry> [level/amount]"));
             return;
         }
         int amount = args.length > 2 ? parseInt(args[2], 1) : 1;
         switch (args[1].toLowerCase(Locale.ROOT)) {
             case "crystal" -> VhItems.give(player, VhItems.crystal(Math.max(1, amount), List.of()));
-            case "essence" -> {
-                var item = VhItems.create(VhItemType.VAULT_ESSENCE);
-                item.setAmount(Math.max(1, Math.min(64, amount)));
-                VhItems.give(player, item);
-            }
+            case "essence" -> currency.addEssence(player, Math.max(1, amount));
+            case "gold" -> currency.addGold(player, Math.max(1, amount));
             case "star" -> VhItems.give(player, VhItems.create(VhItemType.KNOWLEDGE_STAR));
             case "backpack" -> VhItems.give(player, VhItems.backpack());
             case "wand" -> VhItems.give(player, VhItems.create(VhItemType.LINK_WAND));
@@ -191,7 +191,7 @@ public final class VhAdminCommand implements TabExecutor {
                     .stream().filter(o -> o.startsWith(args[0].toLowerCase(Locale.ROOT))).toList();
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
-            List<String> items = new java.util.ArrayList<>(List.of("crystal", "essence", "star",
+            List<String> items = new java.util.ArrayList<>(List.of("crystal", "essence", "gold", "star",
                     "backpack", "wand", "altar", "gear", "heal", "dash", "warcry"));
             Arrays.stream(VaultModifier.values())
                     .forEach(m -> items.add("catalyst_" + m.name().toLowerCase(Locale.ROOT)));
