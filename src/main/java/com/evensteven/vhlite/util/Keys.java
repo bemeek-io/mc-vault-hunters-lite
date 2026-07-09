@@ -23,6 +23,10 @@ public final class Keys {
     public static NamespacedKey INSTANCE_ID;
     /** PDC on entities: set on defend-objective wave mobs. */
     public static NamespacedKey WAVE_MOB;
+    /** PDC on entities: nameplate base label ("Lv.7 Skeleton"). */
+    public static NamespacedKey MOB_BASE;
+    /** Attribute modifier key for elite encounter mobs' bonus health. */
+    public static NamespacedKey MOB_ELITE;
 
     /** Attribute modifier keys for vault mob scaling. */
     public static NamespacedKey MOB_HEALTH;
@@ -48,6 +52,8 @@ public final class Keys {
         BACKPACK_ID = new NamespacedKey(plugin, "backpack_id");
         INSTANCE_ID = new NamespacedKey(plugin, "instance_id");
         WAVE_MOB = new NamespacedKey(plugin, "wave_mob");
+        MOB_BASE = new NamespacedKey(plugin, "mob_base");
+        MOB_ELITE = new NamespacedKey(plugin, "mob_elite");
         MOB_HEALTH = new NamespacedKey(plugin, "vault_mob_health");
         MOB_DAMAGE = new NamespacedKey(plugin, "vault_mob_damage");
         MOB_SPEED = new NamespacedKey(plugin, "vault_mob_speed");

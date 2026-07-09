@@ -42,6 +42,7 @@ public final class VaultGenerator {
                     + ", layout " + bp.layout() + ")");
         }
         GenResult out = new GenResult();
+        out.graph = graph;
 
         buildRooms(graph, bp.theme(), rng, out);
         carveCorridors(graph, bp.theme(), rng, out);

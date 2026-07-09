@@ -82,6 +82,81 @@ public abstract class RoomBuilder {
         }
     }
 
+    /**
+     * Furniture pass: 2-3 set-pieces dropped into the room's quadrants so
+     * halls read as lived-in spaces instead of empty boxes. Quadrant centers
+     * sit clear of the door lanes; later fixture writes (start pad, exit)
+     * simply overwrite whatever landed under them.
+     */
+    protected void features(BlockBuffer buf, Theme theme, Random rng,
+            int ox, int oy, int oz, int h, GenResult out, int count) {
+        int[][] quadrants = {{5, 5}, {13, 5}, {5, 13}, {13, 13}};
+        // Shuffle quadrant order so features never favor one corner.
+        for (int i = quadrants.length - 1; i > 0; i--) {
+            int j = rng.nextInt(i + 1);
+            int[] tmp = quadrants[i];
+            quadrants[i] = quadrants[j];
+            quadrants[j] = tmp;
+        }
+        for (int f = 0; f < Math.min(count, quadrants.length); f++) {
+            int cx = ox + quadrants[f][0] + rng.nextInt(3) - 1;
+            int cz = oz + quadrants[f][1] + rng.nextInt(3) - 1;
+            switch (rng.nextInt(5)) {
+                case 0 -> { // crate pile: barrels, one of them holding loot
+                    buf.set(cx, oy + 1, cz, GenBlocks.BARREL); // the loot barrel
+                    for (int i = 0; i < 3 + rng.nextInt(3); i++) {
+                        int bx = cx + rng.nextInt(2);
+                        int bz = cz + rng.nextInt(2);
+                        int by = oy + 1 + (rng.nextInt(3) == 0 ? 1 : 0);
+                        if (by > oy + 1 && buf.get(bx, by - 1, bz) == GenBlocks.AIR) {
+                            by = oy + 1; // no floating crates
+                        }
+                        buf.set(bx, by, bz, GenBlocks.BARREL);
+                    }
+                    out.chests.add(new GenResult.ChestSpot(new Vec3(cx, oy + 1, cz), false));
+                }
+                case 1 -> { // monument: accent-ringed pillar with a light cap
+                    int tall = 2 + rng.nextInt(Math.max(1, h - 2));
+                    for (int y = 1; y <= tall; y++) {
+                        buf.set(cx, oy + y, cz, theme.pick(theme.pillar, rng));
+                    }
+                    buf.set(cx, oy + tall + 1, cz, theme.light);
+                    for (int[] side : new int[][] {{1, 0}, {-1, 0}, {0, 1}, {0, -1}}) {
+                        buf.set(cx + side[0], oy, cz + side[1], theme.pick(theme.accent, rng));
+                    }
+                }
+                case 2 -> { // rubble: collapsed accent scatter and cobwebs
+                    for (int i = 0; i < 4 + rng.nextInt(4); i++) {
+                        int bx = cx + rng.nextInt(4) - 1;
+                        int bz = cz + rng.nextInt(4) - 1;
+                        buf.set(bx, oy + 1, bz,
+                                rng.nextInt(3) == 0 ? GenBlocks.COBWEB : theme.pick(theme.accent, rng));
+                    }
+                }
+                case 3 -> { // lamp post
+                    buf.set(cx, oy + 1, cz, theme.pick(theme.pillar, rng));
+                    buf.set(cx, oy + 2, cz, theme.pick(theme.pillar, rng));
+                    buf.set(cx, oy + 3, cz, GenBlocks.LANTERN);
+                }
+                default -> { // raised dais with accent inlay
+                    for (int dx = -1; dx <= 1; dx++) {
+                        for (int dz = -1; dz <= 1; dz++) {
+                            buf.set(cx + dx, oy + 1, cz + dz, theme.pick(theme.floor, rng));
+                        }
+                    }
+                    buf.set(cx, oy + 2, cz, theme.pick(theme.accent, rng));
+                }
+            }
+        }
+        // Tall rooms get a hanging lantern or two under the ceiling.
+        if (h >= 7) {
+            for (int i = 0; i < 1 + rng.nextInt(2); i++) {
+                buf.set(ox + 4 + rng.nextInt(ROOM - 8), oy + h, oz + 4 + rng.nextInt(ROOM - 8),
+                        GenBlocks.LANTERN_HANGING);
+            }
+        }
+    }
+
     /** Registers 2-4 mob spawn points and a couple of pedestal candidates. */
     protected void marks(GenResult out, Random rng, int ox, int oy, int oz) {
         int spawns = 2 + rng.nextInt(3);
@@ -105,6 +180,7 @@ public abstract class RoomBuilder {
                 int ox, int oy, int oz, int h, Room room, GenResult out) {
             shell(buf, theme, rng, ox, oy, oz, h);
             clutter(buf, theme, rng, ox, oy, oz, 4 + rng.nextInt(6));
+            features(buf, theme, rng, ox, oy, oz, h, out, 2 + rng.nextInt(2));
             if (rng.nextInt(3) == 0) {
                 chest(buf, out, ox + 2 + rng.nextInt(ROOM - 4), oy + 1, oz + 2 + rng.nextInt(ROOM - 4), false);
             }
@@ -128,6 +204,7 @@ public abstract class RoomBuilder {
                     pillar(buf, theme, ox + px, oy, oz + pz, h);
                 }
             }
+            features(buf, theme, rng, ox, oy, oz, h, out, 1 + rng.nextInt(2));
             if (rng.nextInt(2) == 0) {
                 chest(buf, out, ox + ROOM / 2, oy + 1, oz + ROOM / 2, false);
             }
@@ -175,6 +252,7 @@ public abstract class RoomBuilder {
                     buf.set(x, oy + y, z, theme.pick(theme.accent, rng));
                 }
             }
+            features(buf, theme, rng, ox, oy, oz, h, out, 1 + rng.nextInt(2));
             if (rng.nextInt(3) == 0) {
                 chest(buf, out, ox + ROOM / 2 + rng.nextInt(3) - 1, oy + 1, oz + ROOM / 2 + rng.nextInt(3) - 1, false);
             }

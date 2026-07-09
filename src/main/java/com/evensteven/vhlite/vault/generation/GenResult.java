@@ -13,6 +13,8 @@ public final class GenResult {
     }
 
     public final BlockBuffer buffer = new BlockBuffer();
+    /** The abstract room layout — kept for the minimap and cell tracking. */
+    public RoomGraph graph;
     /** Where players appear (feet position). */
     public Vec3 startPad;
     /** Center of the 3x3 exit pad; stepping onto it (when open) extracts. */

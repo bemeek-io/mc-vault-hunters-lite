@@ -23,7 +23,7 @@ import com.evensteven.vhlite.storage.StorageStore;
 import com.evensteven.vhlite.util.Keys;
 import com.evensteven.vhlite.vault.InstanceAllocator;
 import com.evensteven.vhlite.vault.InstanceStore;
-import com.evensteven.vhlite.vault.MobSpawnerTask;
+import com.evensteven.vhlite.vault.EncounterTask;
 import com.evensteven.vhlite.vault.ScalingService;
 import com.evensteven.vhlite.vault.VaultInstanceManager;
 import com.evensteven.vhlite.vault.VaultRunTask;
@@ -118,9 +118,9 @@ public final class VHLite extends JavaPlugin {
         getCommand("vhadmin").setExecutor(vhadmin);
         getCommand("vhadmin").setTabCompleter(vhadmin);
 
-        // --- recurring work: 1s run tick, 2s spawner tick, 1s XP-bar paint.
+        // --- recurring work: 1s run tick, 1s encounter check, 1s XP-bar paint.
         new VaultRunTask(vaults, scaling, getConfig()).runTaskTimer(this, 20L, 20L);
-        new MobSpawnerTask(vaults, scaling, getConfig()).runTaskTimer(this, 40L, 40L);
+        new EncounterTask(vaults, scaling, getConfig()).runTaskTimer(this, 20L, 20L);
         new com.evensteven.vhlite.player.XpBarTask(profiles, levels).runTaskTimer(this, 20L, 20L);
 
         getLogger().info("Vault Hunters Lite enabled. Altar block: "

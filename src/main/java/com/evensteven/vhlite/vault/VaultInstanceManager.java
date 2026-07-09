@@ -159,6 +159,7 @@ public final class VaultInstanceManager implements Listener {
 
     private void beginApply(VaultInstance instance, GenResult gen) {
         instance.gen = gen;
+        instance.encountersLeft.addAll(gen.mobSpawns);
         switch (instance.blueprint().objective()) {
             case ARTIFACTS -> {
                 instance.artifactsLeft.addAll(gen.artifacts);
@@ -219,13 +220,26 @@ public final class VaultInstanceManager implements Listener {
                 Text.c(bp.theme().displayName + " §7— " + bp.objective().displayName + mods),
                 1f, BossBar.Color.PURPLE, BossBar.Overlay.PROGRESS);
 
+        // The party map: a shared server-rendered view revealing visited rooms.
+        instance.mapView = Bukkit.createMap(instance.world());
+        for (org.bukkit.map.MapRenderer renderer : instance.mapView.getRenderers()) {
+            instance.mapView.removeRenderer(renderer);
+        }
+        instance.mapView.addRenderer(new VaultMapRenderer(instance));
+        instance.mapView.setTrackingPosition(false);
+
         Location start = instance.worldPos(instance.gen.startPad);
+        instance.markVisited(instance.cellOf(start));
         for (Player player : instance.players()) {
             player.teleport(start);
             player.setGameMode(GameMode.SURVIVAL);
             player.setFallDistance(0f);
             player.showBossBar(instance.bossBar);
             scaling.applyPlayerSpeed(player, bp);
+            org.bukkit.inventory.ItemStack mapItem = VhItems.create(VhItemType.VAULT_MAP);
+            mapItem.editMeta(meta ->
+                    ((org.bukkit.inventory.meta.MapMeta) meta).setMapView(instance.mapView));
+            VhItems.give(player, mapItem);
             player.showTitle(Title.title(Text.c(bp.theme().displayName),
                     Text.c(bp.objective().displayName)));
             player.sendMessage(Text.c("§5» §7" + bp.objective().description));
@@ -363,6 +377,13 @@ public final class VaultInstanceManager implements Listener {
             player.hideBossBar(instance.bossBar);
         }
         scaling.clearPlayerSpeed(player);
+        // The vault map dies with the vault.
+        org.bukkit.inventory.ItemStack[] contents = player.getInventory().getContents();
+        for (int i = 0; i < contents.length; i++) {
+            if (VhItems.typeOf(contents[i]) == VhItemType.VAULT_MAP) {
+                player.getInventory().setItem(i, null);
+            }
+        }
         player.setGameMode(GameMode.SURVIVAL);
         player.setFallDistance(0f);
         player.teleport(instance.returnLocation(player.getUniqueId()));
@@ -564,6 +585,18 @@ public final class VaultInstanceManager implements Listener {
                 completeObjective(instance);
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onMobDamage(org.bukkit.event.entity.EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof org.bukkit.entity.LivingEntity mob)
+                || !worlds.isVaultWorld(mob.getWorld())
+                || !mob.getPersistentDataContainer().has(
+                        com.evensteven.vhlite.util.Keys.MOB_BASE, PersistentDataType.STRING)) {
+            return;
+        }
+        // Health applies after the event; repaint the bar next tick.
+        Bukkit.getScheduler().runTask(plugin, () -> MobNameplates.refresh(mob));
     }
 
     @EventHandler

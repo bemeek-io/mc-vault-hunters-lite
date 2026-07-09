@@ -14,6 +14,8 @@ public enum VhItemType {
             "§7Right-click a Vault Altar to open a vault."),
     VAULT_ESSENCE(Material.ECHO_SHARD, "§3Vault Essence",
             "§7Torn from vault creatures. Powers spirit revival."),
+    VAULT_MAP(Material.FILLED_MAP, "§dVault Map",
+            "§7Charts the rooms your party has explored.", "§8Fades when you leave the vault."),
     KNOWLEDGE_STAR(Material.NETHER_STAR, "§bKnowledge Star",
             "§7Right-click to gain a knowledge point."),
     CATALYST(Material.PRISMARINE_SHARD, "§5Catalyst",

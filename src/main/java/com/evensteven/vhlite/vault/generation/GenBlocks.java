@@ -24,6 +24,10 @@ public final class GenBlocks {
     public static BlockData IRON_BLOCK;
     public static BlockData LADDER_SOUTH;
     public static BlockData BEDROCK;
+    public static BlockData BARREL;
+    public static BlockData COBWEB;
+    public static BlockData LANTERN;
+    public static BlockData LANTERN_HANGING;
 
     private GenBlocks() {
     }
@@ -42,5 +46,12 @@ public final class GenBlocks {
         Ladder ladder = (Ladder) Bukkit.createBlockData(Material.LADDER);
         ladder.setFacing(BlockFace.SOUTH); // mounted on the block to its north
         LADDER_SOUTH = ladder;
+        BARREL = Bukkit.createBlockData(Material.BARREL);
+        COBWEB = Bukkit.createBlockData(Material.COBWEB);
+        LANTERN = Bukkit.createBlockData(Material.LANTERN);
+        org.bukkit.block.data.type.Lantern hanging =
+                (org.bukkit.block.data.type.Lantern) Bukkit.createBlockData(Material.LANTERN);
+        hanging.setHanging(true);
+        LANTERN_HANGING = hanging;
     }
 }

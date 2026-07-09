@@ -48,6 +48,8 @@ public final class VaultRunTask extends BukkitRunnable {
         for (Player player : instance.players()) {
             if (instance.contains(player.getLocation())) {
                 inside.add(player);
+                // Fog-of-war: standing in a room reveals it on the party map.
+                instance.markVisited(instance.cellOf(player.getLocation()));
             }
         }
 
@@ -157,10 +159,19 @@ public final class VaultRunTask extends BukkitRunnable {
             }
             return;
         }
-        // Between-waves countdown / wave completion.
+        // Between-waves countdown / wave completion. Stragglers that wandered
+        // (or teleported — shulkers, endermen) get leashed back to the arena
+        // so a hidden mob can never soft-lock the wave.
         instance.waveMobs.removeIf(id -> {
             org.bukkit.entity.Entity entity = org.bukkit.Bukkit.getEntity(id);
-            return entity == null || entity.isDead();
+            if (entity == null || entity.isDead()
+                    || !instance.world().equals(entity.getWorld())) {
+                return true;
+            }
+            if (entity.getLocation().distanceSquared(point) > 20 * 20) {
+                entity.teleport(ringSpot(instance, point.clone()));
+            }
+            return false;
         });
         if (!instance.waveMobs.isEmpty()) {
             return;
@@ -186,12 +197,14 @@ public final class VaultRunTask extends BukkitRunnable {
     private void spawnWave(VaultInstance instance) {
         int count = 4 + instance.wave * 2 + instance.blueprint().level() / 5;
         Vec3 point = instance.gen.defendPoint;
-        // Prefer spawn markers near the beacon so the fight stays local.
-        List<Vec3> spots = new ArrayList<>(instance.gen.mobSpawns);
-        spots.sort((a, b) -> Integer.compare(dist2(a, point), dist2(b, point)));
-        int pool = Math.max(1, Math.min(8, spots.size()));
+        // Spawn in a ring around the beacon, INSIDE the arena — never at far
+        // markers where mobs could sit unreachable and stall the wave.
         for (int i = 0; i < count; i++) {
-            instance.spawnThemedMob(spots.get(instance.rng.nextInt(pool)), scaling, true);
+            double angle = (2 * Math.PI * i) / count + instance.rng.nextDouble() * 0.5;
+            double radius = 4 + instance.rng.nextDouble() * 2.5;
+            Vec3 spot = new Vec3(point.x() + (int) Math.round(Math.cos(angle) * radius),
+                    point.y(), point.z() + (int) Math.round(Math.sin(angle) * radius));
+            instance.spawnThemedMob(spot, scaling, true);
         }
         for (Player player : instance.players()) {
             player.playSound(player.getLocation(), Sound.EVENT_RAID_HORN, 0.7f, 1f);
@@ -199,9 +212,9 @@ public final class VaultRunTask extends BukkitRunnable {
         }
     }
 
-    private int dist2(Vec3 a, Vec3 b) {
-        int dx = a.x() - b.x();
-        int dz = a.z() - b.z();
-        return dx * dx + dz * dz;
+    /** A random point on the spawn ring, for leashing runaway wave mobs back. */
+    private Location ringSpot(VaultInstance instance, Location point) {
+        double angle = instance.rng.nextDouble() * 2 * Math.PI;
+        return point.add(Math.cos(angle) * 5, 0, Math.sin(angle) * 5);
     }
 }

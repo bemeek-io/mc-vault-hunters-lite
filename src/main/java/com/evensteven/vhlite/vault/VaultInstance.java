@@ -2,6 +2,8 @@ package com.evensteven.vhlite.vault;
 
 import com.evensteven.vhlite.util.Keys;
 import com.evensteven.vhlite.vault.generation.GenResult;
+import com.evensteven.vhlite.vault.generation.RoomGraph;
+import com.evensteven.vhlite.vault.generation.VaultGenerator;
 import com.evensteven.vhlite.vault.generation.Vec3;
 import net.kyori.adventure.bossbar.BossBar;
 import org.bukkit.Bukkit;
@@ -51,6 +53,15 @@ public final class VaultInstance {
     public boolean exitOpen;
     public boolean objectiveDone;
     public BossBar bossBar;
+
+    // Exploration + encounters.
+    /** Rooms any party member has stood in — what the vault map reveals. */
+    public final Set<RoomGraph.Cell> visitedCells = new HashSet<>();
+    /** Bumped whenever visitedCells grows, so the map renderer redraws. */
+    public int mapVersion;
+    /** Spawn markers that haven't triggered their one-time encounter yet. */
+    public final Set<Vec3> encountersLeft = new HashSet<>();
+    public org.bukkit.map.MapView mapView;
 
     // Objective progress.
     public int objectiveTarget;
@@ -145,6 +156,25 @@ public final class VaultInstance {
                 && z >= gen.buffer.minZ() - 2 && z <= gen.buffer.maxZ() + 2;
     }
 
+    /** Which layout cell this location falls in, or null if between rooms. */
+    public RoomGraph.Cell cellOf(Location loc) {
+        if (gen == null || gen.graph == null) {
+            return null;
+        }
+        int relX = loc.getBlockX() - blueprint.originX();
+        int relZ = loc.getBlockZ() - blueprint.originZ();
+        int floor = Math.floorDiv(loc.getBlockY() - VaultGenerator.BASE_Y, VaultGenerator.FLOOR_H);
+        RoomGraph.Cell cell = new RoomGraph.Cell(Math.floorDiv(relX, VaultGenerator.CELL),
+                Math.floorDiv(relZ, VaultGenerator.CELL), floor);
+        return gen.graph.get(cell) != null ? cell : null;
+    }
+
+    public void markVisited(RoomGraph.Cell cell) {
+        if (cell != null && visitedCells.add(cell)) {
+            mapVersion++;
+        }
+    }
+
     public boolean onExitPad(Player player) {
         if (!exitOpen || gen == null) {
             return false;
@@ -210,14 +240,17 @@ public final class VaultInstance {
 
     public LivingEntity spawnThemedMob(Vec3 rel, ScalingService scaling, boolean waveMob) {
         EntityType type = blueprint.theme().pickMob(rng);
-        return spawn(type, rel, scaling, false, waveMob);
+        return spawn(type, rel, scaling, false, waveMob, false);
+    }
+
+    public LivingEntity spawnEncounterMob(Vec3 rel, ScalingService scaling, boolean elite) {
+        EntityType type = blueprint.theme().pickMob(rng);
+        return spawn(type, rel, scaling, false, false, elite);
     }
 
     public LivingEntity spawnBoss(ScalingService scaling) {
-        LivingEntity boss = spawn(blueprint.theme().bossType, gen.bossSpawn, scaling, true, false);
+        LivingEntity boss = spawn(blueprint.theme().bossType, gen.bossSpawn, scaling, true, false, false);
         if (boss != null) {
-            boss.customName(com.evensteven.vhlite.util.Text.c(blueprint.theme().bossName));
-            boss.setCustomNameVisible(true);
             boss.setGlowing(true);
             bossId = boss.getUniqueId();
         }
@@ -225,7 +258,7 @@ public final class VaultInstance {
     }
 
     private LivingEntity spawn(EntityType type, Vec3 rel, ScalingService scaling,
-            boolean boss, boolean waveMob) {
+            boolean boss, boolean waveMob, boolean elite) {
         Location loc = worldPos(rel);
         Entity entity = world.spawnEntity(loc, type);
         if (!(entity instanceof LivingEntity mob)) {
@@ -236,6 +269,7 @@ public final class VaultInstance {
         if (waveMob) {
             mob.getPersistentDataContainer().set(Keys.WAVE_MOB, PersistentDataType.INTEGER, 1);
             waveMobs.add(mob.getUniqueId());
+            mob.setGlowing(true); // wave mobs must be findable, always
         }
         mob.setPersistent(false);
         mob.setRemoveWhenFarAway(false);
@@ -249,6 +283,16 @@ public final class VaultInstance {
             phantom.setSize(1);
         }
         scaling.scaleMob(mob, blueprint, boss);
+        if (elite) {
+            var health = mob.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+            if (health != null) {
+                health.removeModifier(Keys.MOB_ELITE);
+                health.addModifier(new org.bukkit.attribute.AttributeModifier(Keys.MOB_ELITE, 1.0,
+                        org.bukkit.attribute.AttributeModifier.Operation.MULTIPLY_SCALAR_1));
+                mob.setHealth(health.getValue());
+            }
+        }
+        MobNameplates.apply(mob, blueprint.level(), elite, boss ? blueprint.theme().bossName : null);
         return mob;
     }
 

@@ -41,7 +41,7 @@ public final class ThemeRegistry {
                 mobs(EntityType.SPIDER, EntityType.CAVE_SPIDER, EntityType.DROWNED, EntityType.ZOMBIE),
                 EntityType.EVOKER, "§aGrove Witch"));
 
-        themes.add(new Theme("frozen_depths", "§bFrozen Depths", 5,
+        themes.add(new Theme("frozen_depths", "§bFrozen Depths", 3,
                 palette(Material.PACKED_ICE, Material.PACKED_ICE, Material.SNOW_BLOCK, Material.BLUE_ICE),
                 palette(Material.PACKED_ICE, Material.SNOW_BLOCK, Material.ICE),
                 palette(Material.PACKED_ICE, Material.SNOW_BLOCK),
@@ -51,7 +51,7 @@ public final class ThemeRegistry {
                 mobs(EntityType.STRAY, EntityType.SKELETON, EntityType.SPIDER),
                 EntityType.STRAY, "§bFrost King"));
 
-        themes.add(new Theme("desert_tomb", "§6Desert Tomb", 8,
+        themes.add(new Theme("desert_tomb", "§6Desert Tomb", 6,
                 palette(Material.SANDSTONE, Material.SMOOTH_SANDSTONE, Material.CUT_SANDSTONE),
                 palette(Material.SANDSTONE, Material.SMOOTH_SANDSTONE, Material.CHISELED_SANDSTONE),
                 palette(Material.SMOOTH_SANDSTONE, Material.SANDSTONE),
@@ -61,7 +61,7 @@ public final class ThemeRegistry {
                 mobs(EntityType.HUSK, EntityType.SKELETON, EntityType.SPIDER),
                 EntityType.HUSK, "§6Tomb Pharaoh"));
 
-        themes.add(new Theme("nether_forge", "§4Nether Forge", 12,
+        themes.add(new Theme("nether_forge", "§4Nether Forge", 10,
                 palette(Material.BLACKSTONE, Material.POLISHED_BLACKSTONE_BRICKS, Material.BASALT),
                 palette(Material.BLACKSTONE, Material.POLISHED_BLACKSTONE, Material.CHISELED_POLISHED_BLACKSTONE),
                 palette(Material.POLISHED_BLACKSTONE_BRICKS, Material.BLACKSTONE),
@@ -71,7 +71,7 @@ public final class ThemeRegistry {
                 mobs(EntityType.BLAZE, EntityType.MAGMA_CUBE, EntityType.WITHER_SKELETON),
                 EntityType.BLAZE, "§4Forge Master"));
 
-        themes.add(new Theme("end_rift", "§dEnd Rift", 16,
+        themes.add(new Theme("end_rift", "§dEnd Rift", 14,
                 palette(Material.END_STONE, Material.END_STONE_BRICKS, Material.PURPUR_BLOCK),
                 palette(Material.END_STONE_BRICKS, Material.PURPUR_BLOCK, Material.PURPUR_PILLAR),
                 palette(Material.END_STONE_BRICKS, Material.PURPUR_BLOCK),
