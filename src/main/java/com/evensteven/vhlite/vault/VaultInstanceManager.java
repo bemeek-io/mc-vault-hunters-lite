@@ -249,10 +249,20 @@ public final class VaultInstanceManager implements Listener {
             player.setFallDistance(0f);
             player.showBossBar(instance.bossBar);
             scaling.applyPlayerSpeed(player, bp);
+            // Offhand, not the main inventory: a map held in the offhand
+            // renders passively in the corner of the screen the whole time,
+            // which is the closest thing to a real minimap vanilla has —
+            // no holding it up, no clicking, always visible. Whatever was
+            // in offhand already (a shield, a totem...) moves to the main
+            // inventory instead of being destroyed.
             org.bukkit.inventory.ItemStack mapItem = VhItems.create(VhItemType.VAULT_MAP);
             mapItem.editMeta(meta ->
                     ((org.bukkit.inventory.meta.MapMeta) meta).setMapView(instance.mapView));
-            VhItems.give(player, mapItem);
+            org.bukkit.inventory.ItemStack previousOffhand = player.getInventory().getItemInOffHand();
+            if (previousOffhand != null && !previousOffhand.getType().isAir()) {
+                VhItems.give(player, previousOffhand);
+            }
+            player.getInventory().setItemInOffHand(mapItem);
             player.showTitle(Title.title(Text.c(bp.theme().displayName),
                     Text.c(bp.objective().displayName)));
             player.sendMessage(Text.c("§5» §7" + bp.objective().description));
@@ -448,7 +458,13 @@ public final class VaultInstanceManager implements Listener {
             player.hideBossBar(instance.bossBar);
         }
         scaling.clearPlayerSpeed(player);
-        // The vault map dies with the vault.
+        // The vault map dies with the vault. It normally lives in the
+        // offhand (getContents() doesn't cover that slot, so check it
+        // explicitly), but sweep the main inventory too in case a player
+        // manually moved it there.
+        if (VhItems.typeOf(player.getInventory().getItemInOffHand()) == VhItemType.VAULT_MAP) {
+            player.getInventory().setItemInOffHand(null);
+        }
         org.bukkit.inventory.ItemStack[] contents = player.getInventory().getContents();
         for (int i = 0; i < contents.length; i++) {
             if (VhItems.typeOf(contents[i]) == VhItemType.VAULT_MAP) {
@@ -737,28 +753,19 @@ public final class VaultInstanceManager implements Listener {
     }
 
     /**
-     * The GUI map: right-clicking a Vault Map opens the menu view. A plain
-     * right-click on a held filled map is a complete no-op in vanilla (maps
-     * just render passively while held — no click needed, no click
-     * behavior to preserve), so this can never take away functionality
-     * players already rely on, unlike hijacking a real action such as
-     * Swap Hands.
+     * The GUI map view — see /vh map. Deliberately NOT a click on the map
+     * item itself: the map now lives passively in the offhand for the
+     * corner-overlay minimap effect, so a right-click there fires on every
+     * ordinary interaction (opening chests, hitting mobs...) and can't be
+     * used as a distinct "open the menu" gesture without misfiring
+     * constantly. A command has no such conflict.
      */
-    @EventHandler
-    public void onMapInteract(PlayerInteractEvent event) {
-        if (event.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_AIR
-                && event.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) {
-            return;
-        }
-        if (VhItems.typeOf(event.getItem()) != VhItemType.VAULT_MAP) {
-            return;
-        }
-        Player player = event.getPlayer();
+    public void openMapMenu(Player player) {
         VaultInstance instance = instanceOf(player);
         if (instance == null) {
+            player.sendMessage(Text.c("§7You are not in a vault."));
             return;
         }
-        event.setCancelled(true);
         new VaultMapMenu(player, instance).open(player);
     }
 

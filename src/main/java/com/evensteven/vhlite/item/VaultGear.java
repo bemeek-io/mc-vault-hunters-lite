@@ -84,6 +84,10 @@ public final class VaultGear {
     private static final String[] FLAVOR = {"Warden's", "Riftbound", "Gloomforged",
             "Echoing", "Colossal", "Spirit-Touched", "Collapsing", "Sunken"};
 
+    /** Defensive stats stay off weapons — a sword shouldn't grant max health. */
+    private static final java.util.Set<Affix> ARMOR_ONLY =
+            java.util.EnumSet.of(Affix.VITALITY, Affix.FORTIFIED, Affix.STALWART);
+
     private VaultGear() {
     }
 
@@ -149,6 +153,9 @@ public final class VaultGear {
         String tag = affixCount == 3 ? "Epic" : affixCount == 2 ? "Rare" : "Common";
 
         List<Affix> pool = new ArrayList<>(List.of(Affix.values()));
+        if (piece == Piece.SWORD) {
+            pool.removeAll(ARMOR_ONLY);
+        }
         Collections.shuffle(pool, rng);
         Map<Affix, Double> rolled = new EnumMap<>(Affix.class);
         for (int i = 0; i < affixCount; i++) {
@@ -197,14 +204,19 @@ public final class VaultGear {
      */
     private static void baseStats(org.bukkit.inventory.meta.ItemMeta meta, Piece piece,
             String tier, int level) {
+        // Keys are scoped per PIECE (not just per stat) — attribute modifier
+        // identity is global across every item a player has equipped, so a
+        // key shared by all four armor slots meant only one piece's armor
+        // bonus ever actually applied; the rest silently collided and lost.
+        String pieceTag = piece.name().toLowerCase(Locale.ROOT);
         if (piece == Piece.SWORD) {
             double damage = (tier.equals("IRON") ? 5 : tier.equals("DIAMOND") ? 6 : 7)
                     + 0.35 * level;
             meta.addAttributeModifier(Attribute.ATTACK_DAMAGE, new AttributeModifier(
-                    Keys.of("gear_base_damage"), Math.round(damage * 10.0) / 10.0,
+                    Keys.of("gear_base_damage_" + pieceTag), Math.round(damage * 10.0) / 10.0,
                     AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
             meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(
-                    Keys.of("gear_base_attack_speed"), -2.4, AttributeModifier.Operation.ADD_NUMBER,
+                    Keys.of("gear_base_attack_speed_" + pieceTag), -2.4, AttributeModifier.Operation.ADD_NUMBER,
                     EquipmentSlotGroup.MAINHAND));
             return;
         }
@@ -216,12 +228,12 @@ public final class VaultGear {
         };
         double armor = ARMOR_POINTS.get(tier)[index] + 0.15 * level;
         meta.addAttributeModifier(Attribute.ARMOR, new AttributeModifier(
-                Keys.of("gear_base_armor"), Math.round(armor * 10.0) / 10.0,
+                Keys.of("gear_base_armor_" + pieceTag), Math.round(armor * 10.0) / 10.0,
                 AttributeModifier.Operation.ADD_NUMBER, piece.slot));
         double toughness = (tier.equals("DIAMOND") ? 2 : tier.equals("NETHERITE") ? 3 : 0)
                 + 0.05 * level;
         meta.addAttributeModifier(Attribute.ARMOR_TOUGHNESS, new AttributeModifier(
-                Keys.of("gear_base_toughness"), Math.round(toughness * 10.0) / 10.0,
+                Keys.of("gear_base_toughness_" + pieceTag), Math.round(toughness * 10.0) / 10.0,
                 AttributeModifier.Operation.ADD_NUMBER, piece.slot));
     }
 
@@ -239,8 +251,11 @@ public final class VaultGear {
             default -> null;
         };
         if (spec != null) {
+            // Same fix here: scope by piece too, so e.g. a sword and a
+            // chestplate that both roll Savage don't collide on one key.
             meta.addAttributeModifier(spec.attribute(), new AttributeModifier(
-                    Keys.of("gear_affix_" + affix.name().toLowerCase(Locale.ROOT)),
+                    Keys.of("gear_affix_" + piece.name().toLowerCase(Locale.ROOT)
+                            + "_" + affix.name().toLowerCase(Locale.ROOT)),
                     value, spec.operation(), piece.slot));
         }
     }

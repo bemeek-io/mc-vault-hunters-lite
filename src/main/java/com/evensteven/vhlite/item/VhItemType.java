@@ -39,7 +39,8 @@ public enum VhItemType {
             "§7Right-click to embolden nearby allies.", "§890s cooldown"),
     VAULT_MAP(1010, Material.FILLED_MAP, "§dVault Map",
             "§7Charts the rooms your party has explored.",
-            "§7Right-click to open it as a menu.",
+            "§7Lives in your offhand as a corner minimap.",
+            "§7Type §f/vh map§7 for a full menu view.",
             "§8Fades when you leave the vault."),
     /** Rolled by VaultGear, never by VhItems.create — material varies. */
     VAULT_GEAR(1011, Material.IRON_SWORD, "§fVaultforged Gear"),

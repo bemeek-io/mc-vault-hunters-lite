@@ -40,7 +40,7 @@ public final class GuideBook {
                     page("""
                             §5§l2. The Vault§0
 
-                            Right-click the altar holding your crystal. Inside: a time limit (boss bar), an objective, and a §dVault Map§0 that charts rooms as you explore. Right-click the map itself for a menu view instead of holding it up.
+                            Right-click the altar holding your crystal. Inside: a time limit (boss bar), an objective, and a §dVault Map§0 that lives in your offhand as a live corner minimap the whole run — no holding it up. Type §0/vh map§0 for a full menu view.
 
                             Finish the objective: some vaults open a glowing §dexit pad§0 to walk back to, others just pull your whole party out on the spot."""),
                     page("""

@@ -93,6 +93,7 @@ public final class VhCommand implements TabExecutor {
                         : "§7You have no trapped spirits."));
             }
             case "quests" -> new com.evensteven.vhlite.quest.QuestMenu(player, profiles, quests).open(player);
+            case "map" -> vaults.openMapMenu(player);
             case "hud" -> hud.toggle(player);
             case "guide" -> {
                 com.evensteven.vhlite.item.VhItems.give(player,
@@ -109,7 +110,7 @@ public final class VhCommand implements TabExecutor {
                 }
             }
             default -> player.sendMessage(Text.c("§7/vh §8[§7stats§8|§7skills§8|§7knowledge§8|"
-                    + "§7quests§8|§7storage§8|§7spirit§8|§7guide§8|§7party§8|§7leave§8]"));
+                    + "§7quests§8|§7map§8|§7storage§8|§7spirit§8|§7guide§8|§7party§8|§7leave§8]"));
         }
         return true;
     }
@@ -147,7 +148,7 @@ public final class VhCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return filter(List.of("stats", "skills", "knowledge", "quests", "storage",
+            return filter(List.of("stats", "skills", "knowledge", "quests", "map", "storage",
                     "spirit", "guide", "hud", "party", "leave"), args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("party")) {
