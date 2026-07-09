@@ -41,10 +41,21 @@ public final class Keys {
     /** Attribute modifier key for the Rush modifier's speed bonus. */
     public static NamespacedKey RUSH_SPEED;
 
+    /** PDC on items: encoded vault-gear affixes ("NAME:value;NAME:value"). */
+    public static NamespacedKey GEAR_AFFIXES;
+
+    private static Plugin owner;
+
     private Keys() {
     }
 
+    /** Ad-hoc keys (per-affix item modifiers) share the plugin namespace. */
+    public static NamespacedKey of(String name) {
+        return new NamespacedKey(owner, name);
+    }
+
     public static void init(Plugin plugin) {
+        owner = plugin;
         ITEM_TYPE = new NamespacedKey(plugin, "item");
         CRYSTAL_LEVEL = new NamespacedKey(plugin, "crystal_level");
         CRYSTAL_MODIFIERS = new NamespacedKey(plugin, "crystal_modifiers");
@@ -54,6 +65,7 @@ public final class Keys {
         WAVE_MOB = new NamespacedKey(plugin, "wave_mob");
         MOB_BASE = new NamespacedKey(plugin, "mob_base");
         MOB_ELITE = new NamespacedKey(plugin, "mob_elite");
+        GEAR_AFFIXES = new NamespacedKey(plugin, "gear_affixes");
         MOB_HEALTH = new NamespacedKey(plugin, "vault_mob_health");
         MOB_DAMAGE = new NamespacedKey(plugin, "vault_mob_damage");
         MOB_SPEED = new NamespacedKey(plugin, "vault_mob_speed");

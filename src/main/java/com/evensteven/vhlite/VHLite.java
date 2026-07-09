@@ -105,13 +105,14 @@ public final class VHLite extends JavaPlugin {
         pm.registerEvents(recipes, this);
         pm.registerEvents(vaults, this);
         pm.registerEvents(new VaultDeathListener(this, vaults, profiles, spirits, getConfig()), this);
-        pm.registerEvents(new AltarListener(getConfig(), profiles, crystalRecipes, spirits, vaults), this);
+        com.evensteven.vhlite.altar.AltarStore altarStore = new com.evensteven.vhlite.altar.AltarStore(this);
+        pm.registerEvents(new AltarListener(getConfig(), profiles, crystalRecipes, spirits, vaults, altarStore), this);
         pm.registerEvents(new ItemUseListener(profiles, knowledge, abilities, backpacks, links), this);
         pm.registerEvents(new PlayerLifecycleListener(profiles, stats, recipes, parties), this);
 
         // --- commands.
         VhCommand vh = new VhCommand(profiles, stats, knowledge, links, prompts, spirits,
-                levels, parties, vaults);
+                levels, parties, vaults, getConfig());
         getCommand("vh").setExecutor(vh);
         getCommand("vh").setTabCompleter(vh);
         VhAdminCommand vhadmin = new VhAdminCommand(this, profiles, stats, vaults, instanceStore);

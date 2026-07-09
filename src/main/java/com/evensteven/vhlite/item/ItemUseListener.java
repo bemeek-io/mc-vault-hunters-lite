@@ -91,8 +91,11 @@ public final class ItemUseListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
-        if (VhItems.typeOf(event.getItemInHand()) != null) {
-            event.setCancelled(true); // no custom item doubles as a block
+        VhItemType type = VhItems.typeOf(event.getItemInHand());
+        // The altar is the one custom item that IS a block (AltarListener
+        // registers it); everything else stays an item.
+        if (type != null && type != VhItemType.VAULT_ALTAR) {
+            event.setCancelled(true);
         }
     }
 }

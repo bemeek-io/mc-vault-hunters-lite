@@ -6,11 +6,9 @@ import com.evensteven.vhlite.knowledge.ResearchNode;
 import com.evensteven.vhlite.menu.ChatPrompt;
 import com.evensteven.vhlite.player.LevelService;
 import com.evensteven.vhlite.player.PartyService;
-import com.evensteven.vhlite.player.PlayerProfile;
 import com.evensteven.vhlite.player.ProfileStore;
 import com.evensteven.vhlite.skills.SkillMenu;
 import com.evensteven.vhlite.skills.StatService;
-import com.evensteven.vhlite.skills.StatType;
 import com.evensteven.vhlite.spirit.SpiritStore;
 import com.evensteven.vhlite.storage.ChestLinkService;
 import com.evensteven.vhlite.storage.StorageMenu;
@@ -38,10 +36,12 @@ public final class VhCommand implements TabExecutor {
     private final LevelService levels;
     private final PartyService parties;
     private final VaultInstanceManager vaults;
+    private final org.bukkit.configuration.file.FileConfiguration config;
 
     public VhCommand(ProfileStore profiles, StatService stats, KnowledgeService knowledge,
             ChestLinkService links, ChatPrompt prompts, SpiritStore spirits, LevelService levels,
-            PartyService parties, VaultInstanceManager vaults) {
+            PartyService parties, VaultInstanceManager vaults,
+            org.bukkit.configuration.file.FileConfiguration config) {
         this.profiles = profiles;
         this.stats = stats;
         this.knowledge = knowledge;
@@ -51,6 +51,7 @@ public final class VhCommand implements TabExecutor {
         this.levels = levels;
         this.parties = parties;
         this.vaults = vaults;
+        this.config = config;
     }
 
     @Override
@@ -60,11 +61,13 @@ public final class VhCommand implements TabExecutor {
             return true;
         }
         if (args.length == 0) {
-            new HubMenu(player, profiles, stats, knowledge, links, prompts, spirits, levels).open(player);
+            new HubMenu(player, profiles, stats, knowledge, links, prompts, spirits,
+                    levels, parties, config).open(player);
             return true;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "stats" -> stats(player);
+            case "stats" -> new com.evensteven.vhlite.player.StatsMenu(
+                    player, profiles, levels, parties, spirits, config).open(player);
             case "skills" -> new SkillMenu(player, profiles, stats).open(player);
             case "knowledge" -> new KnowledgeMenu(player, profiles, knowledge).open(player);
             case "storage" -> {
@@ -93,21 +96,6 @@ public final class VhCommand implements TabExecutor {
                     "§7/vh §8[§7stats§8|§7skills§8|§7knowledge§8|§7storage§8|§7spirit§8|§7party§8|§7leave§8]"));
         }
         return true;
-    }
-
-    private void stats(Player player) {
-        PlayerProfile profile = profiles.get(player);
-        player.sendMessage(Text.c("§5— Vault Profile —"));
-        player.sendMessage(Text.c("§7Level §d" + profile.vaultLevel + " §8(§7"
-                + profile.vaultXp + "/" + levels.xpForLevel(profile.vaultLevel) + " xp§8)"));
-        player.sendMessage(Text.c("§7Skill points: §e" + profile.skillPoints
-                + " §8| §7Knowledge: §b" + profile.knowledgePoints));
-        StringBuilder line = new StringBuilder("§7Stats: ");
-        for (StatType stat : StatType.values()) {
-            line.append(stat.displayName).append(" §e").append(profile.stat(stat)).append("§7  ");
-        }
-        player.sendMessage(Text.c(line.toString().trim()));
-        player.sendMessage(Text.c(parties.describe(player)));
     }
 
     private void party(Player player, String[] args) {

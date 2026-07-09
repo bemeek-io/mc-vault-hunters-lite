@@ -27,6 +27,8 @@ public final class VhItems {
         item.editMeta(meta -> {
             meta.displayName(Text.item(type.displayName));
             meta.lore(Text.lore(type.lore));
+            // Pinned per-type id a server resource pack can retexture against.
+            meta.setCustomModelData(type.modelData);
             meta.getPersistentDataContainer().set(Keys.ITEM_TYPE, PersistentDataType.STRING, type.name());
         });
         return item;

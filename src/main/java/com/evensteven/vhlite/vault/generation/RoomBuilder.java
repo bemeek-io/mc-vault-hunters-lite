@@ -333,9 +333,10 @@ public abstract class RoomBuilder {
             }
             out.bossSpawn = new Vec3(cx, oy + 1, cz);
             out.defendPoint = new Vec3(cx, oy + 1, cz);
-            // Arena always pays out.
-            chest(buf, out, ox + 3, oy + 2, oz + ROOM / 2, false);
-            chest(buf, out, ox + ROOM - 4, oy + 2, oz + ROOM / 2, false);
+            // Arena always pays out. On the floor — the rim has door-lane
+            // gaps, so rim-height chests could float.
+            chest(buf, out, ox + 4, oy + 1, oz + 5, false);
+            chest(buf, out, ox + ROOM - 5, oy + 1, oz + ROOM - 6, false);
             marks(out, rng, ox, oy, oz);
         }
     }

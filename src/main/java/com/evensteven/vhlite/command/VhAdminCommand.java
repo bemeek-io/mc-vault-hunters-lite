@@ -86,6 +86,9 @@ public final class VhAdminCommand implements TabExecutor {
             case "star" -> VhItems.give(player, VhItems.create(VhItemType.KNOWLEDGE_STAR));
             case "backpack" -> VhItems.give(player, VhItems.backpack());
             case "wand" -> VhItems.give(player, VhItems.create(VhItemType.LINK_WAND));
+            case "altar" -> VhItems.give(player, VhItems.create(VhItemType.VAULT_ALTAR));
+            case "gear" -> VhItems.give(player, com.evensteven.vhlite.item.VaultGear.roll(
+                    Math.max(1, amount), new java.util.Random(), 0.5));
             case "heal" -> VhItems.give(player, VhItems.create(VhItemType.ABILITY_HEAL));
             case "dash" -> VhItems.give(player, VhItems.create(VhItemType.ABILITY_DASH));
             case "warcry" -> VhItems.give(player, VhItems.create(VhItemType.ABILITY_WARCRY));
@@ -189,7 +192,7 @@ public final class VhAdminCommand implements TabExecutor {
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("give")) {
             List<String> items = new java.util.ArrayList<>(List.of("crystal", "essence", "star",
-                    "backpack", "wand", "heal", "dash", "warcry"));
+                    "backpack", "wand", "altar", "gear", "heal", "dash", "warcry"));
             Arrays.stream(VaultModifier.values())
                     .forEach(m -> items.add("catalyst_" + m.name().toLowerCase(Locale.ROOT)));
             return items.stream().filter(o -> o.startsWith(args[1].toLowerCase(Locale.ROOT))).toList();

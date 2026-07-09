@@ -67,6 +67,11 @@ public final class LootRoller {
             essence.setAmount(1 + rng.nextInt(treasure ? 4 : 2));
             inv.setItem(rng.nextInt(inv.getSize()), essence);
         }
+        // Vaultforged gear: the vault-exclusive reward line.
+        if (rng.nextDouble() < (treasure ? 0.25 : 0.08) * lootMult) {
+            inv.setItem(rng.nextInt(inv.getSize()),
+                    com.evensteven.vhlite.item.VaultGear.roll(level, rng, treasure ? 0.15 : 0.0));
+        }
     }
 
     private ItemStack rollItem(int level, boolean treasure, Random rng) {

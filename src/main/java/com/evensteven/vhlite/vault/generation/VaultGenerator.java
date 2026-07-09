@@ -51,6 +51,7 @@ public final class VaultGenerator {
         placeObjective(bp, graph, rng, out);
         addBonusChests(bp, rng, out);
         pruneStartRoomMarks(start, out);
+        supportChests(bp.theme(), rng, out);
         return out;
     }
 
@@ -271,6 +272,17 @@ public final class VaultGenerator {
                 out.buffer.set(spot.x(), spot.y(), spot.z(), GenBlocks.CHEST);
                 out.chests.add(new GenResult.ChestSpot(spot, false));
                 extra--;
+            }
+        }
+    }
+
+    /** No chest may float: anything airy below a chest becomes floor. */
+    private void supportChests(Theme theme, Random rng, GenResult out) {
+        for (GenResult.ChestSpot spot : out.chests) {
+            var below = out.buffer.get(spot.pos().x(), spot.pos().y() - 1, spot.pos().z());
+            if (below == null || below == GenBlocks.AIR || below == GenBlocks.COBWEB) {
+                out.buffer.set(spot.pos().x(), spot.pos().y() - 1, spot.pos().z(),
+                        theme.pick(theme.floor, rng));
             }
         }
     }

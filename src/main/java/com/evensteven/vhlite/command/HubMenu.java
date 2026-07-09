@@ -29,10 +29,14 @@ public final class HubMenu extends Menu {
     private final ChatPrompt prompts;
     private final SpiritStore spirits;
     private final com.evensteven.vhlite.player.LevelService levels;
+    private final com.evensteven.vhlite.player.PartyService parties;
+    private final org.bukkit.configuration.file.FileConfiguration config;
 
     public HubMenu(Player viewer, ProfileStore profiles, StatService stats,
             KnowledgeService knowledge, ChestLinkService links, ChatPrompt prompts,
-            SpiritStore spirits, com.evensteven.vhlite.player.LevelService levels) {
+            SpiritStore spirits, com.evensteven.vhlite.player.LevelService levels,
+            com.evensteven.vhlite.player.PartyService parties,
+            org.bukkit.configuration.file.FileConfiguration config) {
         super(viewer, 3, "§5Vault Hunters");
         this.profiles = profiles;
         this.stats = stats;
@@ -41,6 +45,8 @@ public final class HubMenu extends Menu {
         this.prompts = prompts;
         this.spirits = spirits;
         this.levels = levels;
+        this.parties = parties;
+        this.config = config;
     }
 
     @Override
@@ -52,6 +58,11 @@ public final class HubMenu extends Menu {
                 "§7Skill points: §e" + profile.skillPoints,
                 "§7Knowledge points: §b" + profile.knowledgePoints,
                 "§8Forge crystals at a Vault Altar (lodestone)."));
+
+        button(10, named(Material.PLAYER_HEAD, "§dVault Profile",
+                        "§7Your full character sheet: level,", "§7stats, research, and spirits."),
+                event -> new com.evensteven.vhlite.player.StatsMenu(
+                        viewer, profiles, levels, parties, spirits, config).open(viewer));
 
         button(11, named(Material.IRON_SWORD, "§cSkills",
                         "§7Invest points into Strength, Vitality,", "§7Swiftness, Fortune, Resilience."),

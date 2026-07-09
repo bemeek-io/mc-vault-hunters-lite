@@ -567,9 +567,22 @@ public final class VaultInstanceManager implements Listener {
         instance.waveMobs.remove(event.getEntity().getUniqueId());
         Player killer = event.getEntity().getKiller();
         if (killer != null) {
-            levels.addXp(killer, config.getInt("xp.per-mob-kill", 2));
-            if (instance.rng.nextInt(5) == 0) {
+            // Vaultforged exotic affixes bend the kill economy.
+            double vaultborn = com.evensteven.vhlite.item.VaultGear.affixSum(
+                    killer, com.evensteven.vhlite.item.VaultGear.Affix.VAULTBORN);
+            levels.addXp(killer, (int) Math.ceil(
+                    config.getInt("xp.per-mob-kill", 2) * (1.0 + vaultborn)));
+            double essenceChance = 0.20 * (1.0 + com.evensteven.vhlite.item.VaultGear.affixSum(
+                    killer, com.evensteven.vhlite.item.VaultGear.Affix.ESSENCE_HOARDER));
+            if (instance.rng.nextDouble() < essenceChance) {
                 event.getDrops().add(VhItems.create(VhItemType.VAULT_ESSENCE));
+            }
+            double secondWind = com.evensteven.vhlite.item.VaultGear.affixSum(
+                    killer, com.evensteven.vhlite.item.VaultGear.Affix.SECOND_WIND);
+            if (secondWind > 0) {
+                var max = killer.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                killer.setHealth(Math.min(max != null ? max.getValue() : 20.0,
+                        killer.getHealth() + secondWind));
             }
         }
         if (event.getEntity().getUniqueId().equals(instance.bossId)) {
@@ -578,6 +591,9 @@ public final class VaultInstanceManager implements Listener {
             event.getDrops().add(essence);
             event.getDrops().add(VhItems.catalyst(
                     VaultModifier.values()[instance.rng.nextInt(VaultModifier.values().length)]));
+            // The guardian always yields a piece of Vaultforged gear.
+            event.getDrops().add(com.evensteven.vhlite.item.VaultGear.roll(
+                    instance.blueprint().level(), instance.rng, 0.35));
             for (Player member : instance.players()) {
                 member.sendMessage(Text.c(instance.blueprint().theme().bossName + " §7has fallen!"));
             }

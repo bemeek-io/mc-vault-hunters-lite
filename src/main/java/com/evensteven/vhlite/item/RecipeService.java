@@ -41,6 +41,7 @@ public final class RecipeService implements Listener {
     private final Map<ResearchNode, List<NamespacedKey>> byNode = new HashMap<>();
     private NamespacedKey backpackKey;
     private NamespacedKey combineKey;
+    private NamespacedKey altarKey;
 
     public RecipeService(Plugin plugin, ProfileStore profiles) {
         this.plugin = plugin;
@@ -65,6 +66,16 @@ public final class RecipeService implements Listener {
         wand.setIngredient('E', Material.ENDER_PEARL);
         wand.setIngredient('B', Material.BLAZE_ROD);
         add(wand, ResearchNode.CHEST_LINKING);
+
+        // The altar itself: the gateway recipe, never knowledge-gated.
+        // Amethyst comes from geodes, a diamond from any brave cave trip.
+        altarKey = key("vault_altar");
+        ShapedRecipe altar = new ShapedRecipe(altarKey, VhItems.create(VhItemType.VAULT_ALTAR));
+        altar.shape(" A ", "SDS", "SSS");
+        altar.setIngredient('A', Material.AMETHYST_SHARD);
+        altar.setIngredient('S', Material.STONE_BRICKS);
+        altar.setIngredient('D', Material.DIAMOND);
+        add(altar, null);
 
         ShapedRecipe star = new ShapedRecipe(key("knowledge_star"), VhItems.create(VhItemType.KNOWLEDGE_STAR));
         star.shape("DLD", "LBL", "DLD");
@@ -114,6 +125,7 @@ public final class RecipeService implements Listener {
     public void syncDiscovered(Player player) {
         PlayerProfile profile = profiles.get(player);
         player.discoverRecipe(key("knowledge_star"));
+        player.discoverRecipe(key("vault_altar"));
         for (ResearchNode node : profile.research) {
             for (NamespacedKey recipeKey : byNode.getOrDefault(node, List.of())) {
                 player.discoverRecipe(recipeKey);
@@ -171,6 +183,13 @@ public final class RecipeService implements Listener {
                 }
                 catalyst = item;
             }
+        }
+
+        // Never let a real crystal/catalyst be burned as a plain shard in
+        // some other recipe (e.g. the altar's amethyst slot).
+        if (!recipeKey.equals(combineKey) && (crystal != null || catalyst != null)) {
+            event.getInventory().setResult(null);
+            return;
         }
 
         if (recipeKey.equals(combineKey)) {
