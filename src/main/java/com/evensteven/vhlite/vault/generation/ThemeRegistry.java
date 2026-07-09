@@ -28,7 +28,7 @@ public final class ThemeRegistry {
                 palette(Material.POLISHED_DEEPSLATE),
                 palette(Material.CHISELED_STONE_BRICKS, Material.COBBLESTONE),
                 data(Material.OCHRE_FROGLIGHT),
-                mobs(EntityType.ZOMBIE, EntityType.SKELETON, EntityType.SPIDER),
+                mobs(EntityType.ZOMBIE, EntityType.SPIDER), mobs(EntityType.SKELETON),
                 EntityType.RAVAGER, "§cKeep Warden"));
 
         themes.add(new Theme("overgrown", "§aOvergrown Hollow", 0,
@@ -39,6 +39,7 @@ public final class ThemeRegistry {
                 palette(Material.AZALEA_LEAVES, Material.FLOWERING_AZALEA_LEAVES, Material.MOSS_BLOCK),
                 data(Material.SHROOMLIGHT),
                 mobs(EntityType.SPIDER, EntityType.CAVE_SPIDER, EntityType.DROWNED, EntityType.ZOMBIE),
+                mobs(), // pure melee theme — no bow users at all in the Hollow
                 EntityType.EVOKER, "§aGrove Witch"));
 
         themes.add(new Theme("frozen_depths", "§bFrozen Depths", 3,
@@ -48,7 +49,7 @@ public final class ThemeRegistry {
                 palette(Material.BLUE_ICE),
                 palette(Material.ICE, Material.SNOW_BLOCK),
                 data(Material.SEA_LANTERN),
-                mobs(EntityType.STRAY, EntityType.SKELETON, EntityType.SPIDER),
+                mobs(EntityType.SPIDER, EntityType.ZOMBIE), mobs(EntityType.STRAY),
                 EntityType.STRAY, "§bFrost King"));
 
         themes.add(new Theme("desert_tomb", "§6Desert Tomb", 6,
@@ -58,7 +59,7 @@ public final class ThemeRegistry {
                 palette(Material.CUT_SANDSTONE),
                 palette(Material.CHISELED_SANDSTONE, Material.GOLD_BLOCK, Material.SANDSTONE),
                 data(Material.OCHRE_FROGLIGHT),
-                mobs(EntityType.HUSK, EntityType.SKELETON, EntityType.SPIDER),
+                mobs(EntityType.HUSK, EntityType.SPIDER), mobs(EntityType.SKELETON),
                 EntityType.HUSK, "§6Tomb Pharaoh"));
 
         themes.add(new Theme("nether_forge", "§4Nether Forge", 10,
@@ -68,7 +69,7 @@ public final class ThemeRegistry {
                 palette(Material.POLISHED_BASALT),
                 palette(Material.MAGMA_BLOCK, Material.GILDED_BLACKSTONE, Material.BLACKSTONE),
                 data(Material.GLOWSTONE),
-                mobs(EntityType.BLAZE, EntityType.MAGMA_CUBE, EntityType.WITHER_SKELETON),
+                mobs(EntityType.MAGMA_CUBE, EntityType.WITHER_SKELETON), mobs(EntityType.BLAZE),
                 EntityType.BLAZE, "§4Forge Master"));
 
         themes.add(new Theme("end_rift", "§dEnd Rift", 14,
@@ -78,7 +79,7 @@ public final class ThemeRegistry {
                 palette(Material.PURPUR_PILLAR),
                 palette(Material.OBSIDIAN, Material.CRYING_OBSIDIAN, Material.END_STONE),
                 data(Material.PEARLESCENT_FROGLIGHT),
-                mobs(EntityType.ENDERMAN, EntityType.SHULKER, EntityType.PHANTOM),
+                mobs(EntityType.ENDERMAN, EntityType.PHANTOM), mobs(EntityType.SHULKER),
                 EntityType.ENDERMAN, "§dRift Stalker"));
     }
 

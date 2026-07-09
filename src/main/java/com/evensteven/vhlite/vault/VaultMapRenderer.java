@@ -23,13 +23,14 @@ public final class VaultMapRenderer extends MapRenderer {
 
     private static final int PITCH = 14;  // px per cell
     private static final int SQUARE = 10; // room square size
-    private static final Color BG = new Color(24, 20, 34);
-    private static final Color ROOM = new Color(150, 150, 160);
-    private static final Color ROOM_UP = new Color(110, 150, 210);
-    private static final Color START = new Color(90, 200, 90);
-    private static final Color OBJECTIVE = new Color(190, 90, 220);
-    private static final Color TREASURE = new Color(230, 190, 60);
-    private static final Color DOOR = new Color(100, 100, 110);
+    private static final Color BG = new Color(21, 17, 14);       // unexplored: dark stone
+    private static final Color BORDER = new Color(64, 48, 32);   // parchment-frame edge
+    private static final Color ROOM = new Color(168, 150, 118);  // explored: worn parchment
+    private static final Color ROOM_UP = new Color(120, 150, 196);
+    private static final Color START = new Color(96, 176, 90);
+    private static final Color OBJECTIVE = new Color(186, 96, 200);
+    private static final Color TREASURE = new Color(220, 178, 62);
+    private static final Color DOOR = new Color(96, 80, 56);
 
     private final VaultInstance instance;
     private int drawnVersion = -1;
@@ -90,7 +91,10 @@ public final class VaultMapRenderer extends MapRenderer {
                 case TREASURE -> TREASURE;
                 default -> cell.floor() > 0 ? ROOM_UP : ROOM;
             };
-            fill(canvas, px, pz, SQUARE, SQUARE, color);
+            // A dark frame plus a speckled fill reads as an explored map
+            // tile (parchment + ink) instead of a flat CAD-drawing square.
+            fill(canvas, px, pz, SQUARE, SQUARE, BORDER);
+            fillSpeckled(canvas, px + 1, pz + 1, SQUARE - 2, SQUARE - 2, color, cell.hashCode());
             if (cell.floor() > 0) {
                 // Upper-floor rooms get a hollow center so floors read apart.
                 fill(canvas, px + 3, pz + 3, SQUARE - 6, SQUARE - 6, BG);
@@ -119,6 +123,22 @@ public final class VaultMapRenderer extends MapRenderer {
                 if (px >= 0 && px < 128 && pz >= 0 && pz < 128) {
                     canvas.setPixelColor(px, pz, color);
                 }
+            }
+        }
+    }
+
+    /** Same fill, but ~1 in 5 pixels darkens slightly — reads as ink/texture, not a flat vector fill. */
+    private void fillSpeckled(MapCanvas canvas, int x, int z, int w, int h, Color color, int salt) {
+        Color dark = color.darker();
+        for (int dx = 0; dx < w; dx++) {
+            for (int dz = 0; dz < h; dz++) {
+                int px = x + dx;
+                int pz = z + dz;
+                if (px < 0 || px >= 128 || pz < 0 || pz >= 128) {
+                    continue;
+                }
+                int hash = (salt * 31 + px) * 31 + pz;
+                canvas.setPixelColor(px, pz, (hash & 7) == 0 ? dark : color);
             }
         }
     }

@@ -197,6 +197,9 @@ public final class VaultRunTask extends BukkitRunnable {
     private void spawnWave(VaultInstance instance) {
         int count = 4 + instance.wave * 2 + instance.blueprint().level() / 5;
         Vec3 point = instance.gen.defendPoint;
+        // At most a couple of ranged attackers per wave — a static arena
+        // fight can tolerate a couple archers, not a full firing line.
+        int rangedBudget = Math.min(2, 1 + instance.wave / 2);
         // Spawn in a ring around the beacon, INSIDE the arena — never at far
         // markers where mobs could sit unreachable and stall the wave.
         for (int i = 0; i < count; i++) {
@@ -204,7 +207,11 @@ public final class VaultRunTask extends BukkitRunnable {
             double radius = 4 + instance.rng.nextDouble() * 2.5;
             Vec3 spot = new Vec3(point.x() + (int) Math.round(Math.cos(angle) * radius),
                     point.y(), point.z() + (int) Math.round(Math.sin(angle) * radius));
-            instance.spawnThemedMob(spot, scaling, true);
+            boolean ranged = rangedBudget > 0 && instance.rng.nextInt(3) == 0;
+            if (ranged) {
+                rangedBudget--;
+            }
+            instance.spawnThemedMob(spot, scaling, true, ranged);
         }
         for (Player player : instance.players()) {
             player.playSound(player.getLocation(), Sound.EVENT_RAID_HORN, 0.7f, 1f);

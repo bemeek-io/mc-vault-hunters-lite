@@ -37,6 +37,14 @@ public final class MobNameplates {
         mob.setCustomNameVisible(true);
     }
 
+    /** Champions sit between Elites and bosses: bold, unmistakable. */
+    public static void applyChampion(LivingEntity mob, int level) {
+        String base = "§d§lChampion §7Lv." + level + " §f" + prettyType(mob);
+        mob.getPersistentDataContainer().set(Keys.MOB_BASE, PersistentDataType.STRING, base);
+        refresh(mob);
+        mob.setCustomNameVisible(true);
+    }
+
     /** Re-render the health bar; call a tick after any damage/heal. */
     public static void refresh(LivingEntity mob) {
         String base = mob.getPersistentDataContainer().get(Keys.MOB_BASE, PersistentDataType.STRING);

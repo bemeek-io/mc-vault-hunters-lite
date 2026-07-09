@@ -24,7 +24,9 @@ public record VaultBlueprint(
         List<VaultModifier> modifiers,
         int slot,
         int originX,
-        int originZ) {
+        int originZ,
+        /** True: victory pulls the party out on the spot, no walk to a pad. */
+        boolean instantExtract) {
 
     public double modifierProduct(java.util.function.ToDoubleFunction<VaultModifier> getter) {
         double product = 1.0;

@@ -96,22 +96,28 @@ public final class LootRoller {
     }
 
     private ItemStack rollItem(int level, boolean treasure, Random rng) {
-        // Rarity odds tilt with level; treasure chests skip most of the chaff.
+        // Tier AVAILABILITY is gated by level first — a level-1 chest simply
+        // cannot roll epic loot, no matter how lucky the roll is. Only once
+        // a tier unlocks does the level bonus start nudging you toward it.
+        boolean uncommonUnlocked = level >= 2;
+        boolean rareUnlocked = level >= 5;
+        boolean epicUnlocked = level >= 11;
+
         int roll = rng.nextInt(100) + (treasure ? 25 : 0) + Math.min(20, level);
-        if (roll >= 118 && rng.nextInt(4) == 0) {
+        if (epicUnlocked && roll >= 118 && rng.nextInt(4) == 0) {
             return VhItems.create(VhItemType.KNOWLEDGE_STAR);
         }
-        if (roll >= 110) {
+        if (epicUnlocked && roll >= 110) {
             return stack(EPIC, rng);
         }
-        if (roll >= 95) {
+        if (rareUnlocked && roll >= 95) {
             if (rng.nextInt(5) == 0) {
                 VaultModifier[] mods = VaultModifier.values();
                 return VhItems.catalyst(mods[rng.nextInt(mods.length)]);
             }
             return stack(RARE, rng);
         }
-        if (roll >= 70) {
+        if (uncommonUnlocked && roll >= 70) {
             return stack(UNCOMMON, rng);
         }
         return stack(COMMON, rng);

@@ -240,14 +240,31 @@ public final class VaultInstance {
 
     // ----------------------------------------------------------------- mobs
 
-    public LivingEntity spawnThemedMob(Vec3 rel, ScalingService scaling, boolean waveMob) {
-        EntityType type = blueprint.theme().pickMob(rng);
+    public LivingEntity spawnThemedMob(Vec3 rel, ScalingService scaling, boolean waveMob, boolean ranged) {
+        EntityType type = ranged ? blueprint.theme().pickRanged(rng) : blueprint.theme().pickMelee(rng);
         return spawn(type, rel, scaling, false, waveMob, false);
     }
 
-    public LivingEntity spawnEncounterMob(Vec3 rel, ScalingService scaling, boolean elite) {
-        EntityType type = blueprint.theme().pickMob(rng);
+    public LivingEntity spawnEncounterMob(Vec3 rel, ScalingService scaling, boolean elite, boolean ranged) {
+        EntityType type = ranged ? blueprint.theme().pickRanged(rng) : blueprint.theme().pickMelee(rng);
         return spawn(type, rel, scaling, false, false, elite);
+    }
+
+    /** Between an Elite and a boss: rare, unmistakable, guaranteed drops. */
+    public LivingEntity spawnChampion(Vec3 rel, ScalingService scaling) {
+        EntityType type = blueprint.theme().pickMelee(rng); // never a bow-sniper champion
+        LivingEntity champion = spawn(type, rel, scaling, false, false, false);
+        if (champion != null) {
+            champion.getPersistentDataContainer().set(Keys.MOB_CHAMPION, PersistentDataType.INTEGER, 1);
+            champion.setGlowing(true);
+            scaling.tweakMob(champion, 3.2, 1.6);
+            MobNameplates.applyChampion(champion, blueprint.level());
+        }
+        return champion;
+    }
+
+    public boolean isChampion(Entity entity) {
+        return entity.getPersistentDataContainer().has(Keys.MOB_CHAMPION, PersistentDataType.INTEGER);
     }
 
     public LivingEntity spawnBoss(ScalingService scaling) {
@@ -284,6 +301,15 @@ public final class VaultInstance {
         if (mob instanceof org.bukkit.entity.Phantom phantom) {
             phantom.setSize(1);
         }
+        if (mob instanceof org.bukkit.entity.Zombie && mob.getEquipment() != null) {
+            // Melee variety: nothing, a sword, or (per request) a tool —
+            // zombie-family AI attacks with whatever's in hand regardless.
+            org.bukkit.inventory.ItemStack weapon = rollMeleeWeapon();
+            if (weapon != null) {
+                mob.getEquipment().setItemInMainHand(weapon);
+                mob.getEquipment().setItemInMainHandDropChance(0f);
+            }
+        }
         scaling.scaleMob(mob, blueprint, boss);
         if (elite) {
             var health = mob.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
@@ -296,6 +322,24 @@ public final class VaultInstance {
         }
         MobNameplates.apply(mob, blueprint.level(), elite, boss ? blueprint.theme().bossName : null);
         return mob;
+    }
+
+    private static final org.bukkit.Material[] MELEE_FLAVOR_TOOLS = {
+            org.bukkit.Material.IRON_PICKAXE, org.bukkit.Material.IRON_AXE,
+            org.bukkit.Material.IRON_SHOVEL, org.bukkit.Material.IRON_HOE};
+
+    /** 15% bare-handed, 55% a level-tiered sword, 30% a random tool. */
+    private org.bukkit.inventory.ItemStack rollMeleeWeapon() {
+        int roll = rng.nextInt(100);
+        if (roll < 15) {
+            return null;
+        }
+        if (roll < 70) {
+            org.bukkit.Material tier = blueprint.level() < 6 ? org.bukkit.Material.WOODEN_SWORD
+                    : blueprint.level() < 14 ? org.bukkit.Material.STONE_SWORD : org.bukkit.Material.IRON_SWORD;
+            return new org.bukkit.inventory.ItemStack(tier);
+        }
+        return new org.bukkit.inventory.ItemStack(MELEE_FLAVOR_TOOLS[rng.nextInt(MELEE_FLAVOR_TOOLS.length)]);
     }
 
     public boolean ownsMob(Entity entity) {

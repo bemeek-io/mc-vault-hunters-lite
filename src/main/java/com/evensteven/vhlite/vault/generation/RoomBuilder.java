@@ -58,6 +58,69 @@ public abstract class RoomBuilder {
         }
     }
 
+    /**
+     * Unconditionally re-opens a straight 3-wide path from the ROOM boundary
+     * inward for every doorway this room actually has, regardless of how
+     * small or oddly shaped the interior mask is. Shapes that don't reach
+     * the boundary on their own (small circles, triangles...) MUST call this
+     * after shell() — it guarantees the corridor outside can always reach
+     * the chamber inside, no matter the shape's own geometry.
+     */
+    protected void connectDoors(BlockBuffer buf, Theme theme, Random rng,
+            int ox, int oy, int oz, int h, Room room) {
+        int mid = ROOM / 2;
+        int reach = 8; // stops one block short of center — always overlaps any real chamber
+        for (Dir dir : room.doors) {
+            for (int step = 0; step < reach; step++) {
+                int lx = switch (dir) {
+                    case EAST -> ROOM - 1 - step;
+                    case WEST -> step;
+                    default -> mid;
+                };
+                int lz = switch (dir) {
+                    case SOUTH -> ROOM - 1 - step;
+                    case NORTH -> step;
+                    default -> mid;
+                };
+                boolean eastWest = dir == Dir.EAST || dir == Dir.WEST;
+                for (int off = -1; off <= 1; off++) {
+                    int fx = eastWest ? lx : lx + off;
+                    int fz = eastWest ? lz + off : lz;
+                    buf.set(ox + fx, oy, oz + fz, theme.pick(theme.floor, rng));
+                    buf.set(ox + fx, oy + h + 1, oz + fz, theme.pick(theme.ceiling, rng));
+                    for (int y = 1; y <= h; y++) {
+                        buf.set(ox + fx, oy + y, oz + fz, GenBlocks.AIR);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Decorative mural stripes on a scattering of wall segments — plain
+     * walls get the odd vertical band of the theme's accent block, well
+     * clear of the door frames near each midline.
+     */
+    protected void wallMurals(BlockBuffer buf, Theme theme, Random rng, int ox, int oy, int oz, int h) {
+        int mid = ROOM / 2;
+        for (int x = 0; x < ROOM; x++) {
+            for (int z = 0; z < ROOM; z++) {
+                if (!inMask(x, z)) {
+                    continue;
+                }
+                boolean wall = !inMask(x + 1, z) || !inMask(x - 1, z)
+                        || !inMask(x, z + 1) || !inMask(x, z - 1);
+                if (!wall || (Math.abs(x - mid) <= 2 && Math.abs(z - mid) <= 2) || rng.nextInt(6) != 0) {
+                    continue;
+                }
+                int stripeTop = Math.min(h, 4);
+                for (int y = 2; y <= stripeTop; y++) {
+                    buf.set(ox + x, oy + y, oz + z, theme.pick(theme.accent, rng));
+                }
+            }
+        }
+    }
+
     /** Walls get the odd embedded light so rooms are never pitch black. */
     private BlockData wallOrLight(Theme theme, Random rng) {
         return rng.nextInt(24) == 0 ? theme.light : theme.pick(theme.wall, rng);
@@ -120,7 +183,7 @@ public abstract class RoomBuilder {
             }
             int cx = ox + lx;
             int cz = oz + lz;
-            switch (rng.nextInt(5)) {
+            switch (rng.nextInt(6)) {
                 case 0 -> { // crate pile: barrels, one of them holding loot
                     buf.set(cx, oy + 1, cz, GenBlocks.BARREL); // the loot barrel
                     for (int i = 0; i < 3 + rng.nextInt(3); i++) {
@@ -157,13 +220,22 @@ public abstract class RoomBuilder {
                     buf.set(cx, oy + 2, cz, theme.pick(theme.pillar, rng));
                     buf.set(cx, oy + 3, cz, GenBlocks.LANTERN);
                 }
-                default -> { // raised dais with accent inlay
+                case 4 -> { // raised dais with accent inlay
                     for (int dx = -1; dx <= 1; dx++) {
                         for (int dz = -1; dz <= 1; dz++) {
                             buf.set(cx + dx, oy + 1, cz + dz, theme.pick(theme.floor, rng));
                         }
                     }
                     buf.set(cx, oy + 2, cz, theme.pick(theme.accent, rng));
+                }
+                default -> { // mound: a stepped pile of raw material
+                    for (int layer = 0; layer <= 2; layer++) {
+                        for (int dx = -(2 - layer); dx <= 2 - layer; dx++) {
+                            for (int dz = -(2 - layer); dz <= 2 - layer; dz++) {
+                                buf.set(cx + dx, oy + 1 + layer, cz + dz, theme.pick(theme.accent, rng));
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -212,7 +284,7 @@ public abstract class RoomBuilder {
 
     // ------------------------------------------------------------ variants
 
-    /** Chamfered corners: reads as a bastion chamber, not a box. */
+    /** Chamfered corners: reads as a bastion chamber, not a box. Varies small to large. */
     public static final class OctagonRoom extends RoomBuilder {
         @Override
         public int height(Random rng) {
@@ -222,11 +294,15 @@ public abstract class RoomBuilder {
         @Override
         public void build(BlockBuffer buf, Theme theme, Random rng,
                 int ox, int oy, int oz, int h, Room room, GenResult out) {
-            int chamfer = 4 + rng.nextInt(3);
+            int chamfer = 3 + rng.nextInt(6); // 3 (huge) .. 8 (tiny bastion)
             int edge = ROOM - 1;
             mask = (x, z) -> x + z >= chamfer && x + z <= 2 * edge - chamfer
                     && x - z <= edge - chamfer && z - x <= edge - chamfer;
             shell(buf, theme, rng, ox, oy, oz, h);
+            if (chamfer > 5) {
+                connectDoors(buf, theme, rng, ox, oy, oz, h, room);
+            }
+            wallMurals(buf, theme, rng, ox, oy, oz, h);
             clutter(buf, theme, rng, ox, oy, oz, 3 + rng.nextInt(5));
             features(buf, theme, rng, ox, oy, oz, h, out, 1 + rng.nextInt(2));
             if (rng.nextInt(3) == 0) {
@@ -237,7 +313,7 @@ public abstract class RoomBuilder {
         }
     }
 
-    /** A round chamber; the light ring makes it read as a rotunda. */
+    /** A round chamber; the light ring makes it read as a rotunda. Varies small to large. */
     public static final class CircleRoom extends RoomBuilder {
         @Override
         public int height(Random rng) {
@@ -247,15 +323,20 @@ public abstract class RoomBuilder {
         @Override
         public void build(BlockBuffer buf, Theme theme, Random rng,
                 int ox, int oy, int oz, int h, Room room, GenResult out) {
-            double radius = 9.4;
+            double radius = 5.5 + rng.nextDouble() * 3.9; // 5.5 (tight) .. 9.4 (full room)
             int mid = ROOM / 2;
             mask = (x, z) -> (x - mid) * (x - mid) + (z - mid) * (z - mid) <= radius * radius;
             shell(buf, theme, rng, ox, oy, oz, h);
+            if (radius < 9) {
+                connectDoors(buf, theme, rng, ox, oy, oz, h, room);
+            }
+            wallMurals(buf, theme, rng, ox, oy, oz, h);
             // Ring of lights inlaid in the floor.
+            int ringRadius = Math.max(2, (int) radius - 2);
             for (int i = 0; i < 8; i++) {
                 double angle = Math.PI * 2 * i / 8;
-                int lx = mid + (int) Math.round(Math.cos(angle) * 5);
-                int lz = mid + (int) Math.round(Math.sin(angle) * 5);
+                int lx = mid + (int) Math.round(Math.cos(angle) * ringRadius);
+                int lz = mid + (int) Math.round(Math.sin(angle) * ringRadius);
                 if (inMask(lx, lz)) {
                     buf.set(ox + lx, oy, oz + lz, theme.light);
                 }
@@ -278,9 +359,10 @@ public abstract class RoomBuilder {
         @Override
         public void build(BlockBuffer buf, Theme theme, Random rng,
                 int ox, int oy, int oz, int h, Room room, GenResult out) {
-            int arm = 5 + rng.nextInt(2); // arm half-width start (5 or 6)
+            int arm = 4 + rng.nextInt(4); // arm half-width 4..7 — thin cross to stout plus
             mask = (x, z) -> (x >= arm && x <= ROOM - 1 - arm) || (z >= arm && z <= ROOM - 1 - arm);
             shell(buf, theme, rng, ox, oy, oz, h);
+            wallMurals(buf, theme, rng, ox, oy, oz, h);
             // A pillar guarding each inner corner of the crossing.
             for (int[] corner : new int[][] {{arm + 1, arm + 1}, {ROOM - 2 - arm, arm + 1},
                     {arm + 1, ROOM - 2 - arm}, {ROOM - 2 - arm, ROOM - 2 - arm}}) {
@@ -296,7 +378,80 @@ public abstract class RoomBuilder {
         }
     }
 
-    /** Plain hall with random clutter; the bread-and-butter room. */
+    /** A right-triangle wedge — the sharpest departure from "box room". */
+    public static final class TriangleRoom extends RoomBuilder {
+        @Override
+        public int height(Random rng) {
+            return 5 + rng.nextInt(5);
+        }
+
+        @Override
+        public void build(BlockBuffer buf, Theme theme, Random rng,
+                int ox, int oy, int oz, int h, Room room, GenResult out) {
+            int edge = ROOM - 1;
+            // One of four diagonal-cut orientations, chosen at random.
+            mask = switch (rng.nextInt(4)) {
+                case 0 -> (x, z) -> x + z <= edge + 3;
+                case 1 -> (x, z) -> x + z >= edge - 3;
+                case 2 -> (x, z) -> x - z <= 3;
+                default -> (x, z) -> z - x <= 3;
+            };
+            shell(buf, theme, rng, ox, oy, oz, h);
+            connectDoors(buf, theme, rng, ox, oy, oz, h, room);
+            wallMurals(buf, theme, rng, ox, oy, oz, h);
+            clutter(buf, theme, rng, ox, oy, oz, 3 + rng.nextInt(4));
+            features(buf, theme, rng, ox, oy, oz, h, out, 1 + rng.nextInt(2));
+            if (rng.nextInt(3) == 0) {
+                chest(buf, out, ox + ROOM / 2, oy + 1, oz + ROOM / 2, false);
+            }
+            marks(out, rng, ox, oy, oz);
+        }
+    }
+
+    /**
+     * A tall room with a mid-height balcony ring around an open light-well —
+     * two floors visible from a single room, ladder-linked in one corner.
+     */
+    public static final class AtriumRoom extends RoomBuilder {
+        @Override
+        public int height(Random rng) {
+            return 12 + rng.nextInt(4);
+        }
+
+        @Override
+        public void build(BlockBuffer buf, Theme theme, Random rng,
+                int ox, int oy, int oz, int h, Room room, GenResult out) {
+            shell(buf, theme, rng, ox, oy, oz, h);
+            wallMurals(buf, theme, rng, ox, oy, oz, h);
+            int mid = ROOM / 2;
+            int balconyLevel = h / 2;
+            int balconyY = oy + balconyLevel;
+            for (int x = 2; x < ROOM - 2; x++) {
+                for (int z = 2; z < ROOM - 2; z++) {
+                    boolean ring = x <= 4 || z <= 4 || x >= ROOM - 5 || z >= ROOM - 5;
+                    boolean midline = Math.abs(x - mid) <= 1 || Math.abs(z - mid) <= 1;
+                    if (ring && !midline) {
+                        buf.set(ox + x, balconyY, oz + z, theme.pick(theme.floor, rng));
+                    }
+                }
+            }
+            // Ladder from ground to the balcony ring in a back corner —
+            // same proven technique as the shaft rooms.
+            for (int y = 1; y < balconyLevel; y++) {
+                buf.set(ox + 4, oy + y, oz + 3, theme.pick(theme.pillar, rng));
+                buf.set(ox + 4, oy + y, oz + 4, GenBlocks.LADDER_SOUTH);
+            }
+            int[][] corners = {{4, 4}, {ROOM - 5, 4}, {4, ROOM - 5}, {ROOM - 5, ROOM - 5}};
+            for (int[] corner : corners) {
+                pillar(buf, theme, ox + corner[0], oy, oz + corner[1], h);
+            }
+            clutter(buf, theme, rng, ox, oy, oz, 3 + rng.nextInt(4));
+            features(buf, theme, rng, ox, oy, oz, h, out, 1 + rng.nextInt(2));
+            marks(out, rng, ox, oy, oz);
+        }
+    }
+
+    /** Plain hall with random clutter; the bread-and-butter room. Varies small to large. */
     public static final class BoxRoom extends RoomBuilder {
         @Override
         public int height(Random rng) {
@@ -306,11 +461,23 @@ public abstract class RoomBuilder {
         @Override
         public void build(BlockBuffer buf, Theme theme, Random rng,
                 int ox, int oy, int oz, int h, Room room, GenResult out) {
+            int inset = rng.nextInt(3) == 0 ? 3 + rng.nextInt(3) : 0; // occasionally a small room
+            if (inset > 0) {
+                mask = (x, z) -> x >= inset && x <= ROOM - 1 - inset && z >= inset && z <= ROOM - 1 - inset;
+            }
             shell(buf, theme, rng, ox, oy, oz, h);
+            if (inset > 0) {
+                connectDoors(buf, theme, rng, ox, oy, oz, h, room);
+            }
+            wallMurals(buf, theme, rng, ox, oy, oz, h);
             clutter(buf, theme, rng, ox, oy, oz, 4 + rng.nextInt(6));
             features(buf, theme, rng, ox, oy, oz, h, out, 2 + rng.nextInt(2));
             if (rng.nextInt(3) == 0) {
-                chest(buf, out, ox + 2 + rng.nextInt(ROOM - 4), oy + 1, oz + 2 + rng.nextInt(ROOM - 4), false);
+                // Bounds respect the shrink inset so a small room never gets
+                // a chest floating in the excluded void margin.
+                int lo = 2 + inset;
+                int span = Math.max(1, ROOM - 4 - inset * 2);
+                chest(buf, out, ox + lo + rng.nextInt(span), oy + 1, oz + lo + rng.nextInt(span), false);
             }
             marks(out, rng, ox, oy, oz);
         }
@@ -327,6 +494,7 @@ public abstract class RoomBuilder {
         public void build(BlockBuffer buf, Theme theme, Random rng,
                 int ox, int oy, int oz, int h, Room room, GenResult out) {
             shell(buf, theme, rng, ox, oy, oz, h);
+            wallMurals(buf, theme, rng, ox, oy, oz, h);
             for (int px = 4; px < ROOM - 2; px += 5) {
                 for (int pz = 4; pz < ROOM - 2; pz += 5) {
                     pillar(buf, theme, ox + px, oy, oz + pz, h);

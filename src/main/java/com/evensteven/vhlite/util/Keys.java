@@ -27,6 +27,8 @@ public final class Keys {
     public static NamespacedKey MOB_BASE;
     /** Attribute modifier key for elite encounter mobs' bonus health. */
     public static NamespacedKey MOB_ELITE;
+    /** PDC on entities: marks a Champion (stronger than Elite, drops on death). */
+    public static NamespacedKey MOB_CHAMPION;
 
     /** Attribute modifier keys for vault mob scaling. */
     public static NamespacedKey MOB_HEALTH;
@@ -71,6 +73,7 @@ public final class Keys {
         WAVE_MOB = new NamespacedKey(plugin, "wave_mob");
         MOB_BASE = new NamespacedKey(plugin, "mob_base");
         MOB_ELITE = new NamespacedKey(plugin, "mob_elite");
+        MOB_CHAMPION = new NamespacedKey(plugin, "mob_champion");
         GEAR_AFFIXES = new NamespacedKey(plugin, "gear_affixes");
         GEAR_LEVEL = new NamespacedKey(plugin, "gear_level");
         GEAR_BOOST = new NamespacedKey(plugin, "gear_boost");

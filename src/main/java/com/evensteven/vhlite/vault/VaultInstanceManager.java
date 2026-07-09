@@ -142,9 +142,13 @@ public final class VaultInstanceManager implements Listener {
         }
 
         int slot = allocator.claim();
+        // Escape already IS a race to a specific exit; every other objective
+        // gets a coin flip on whether victory pulls you out on the spot or
+        // still asks you to walk back to the start pad.
+        boolean instantExtract = objective != VaultObjective.ESCAPE && roll.nextDouble() < 0.4;
         VaultBlueprint bp = new VaultBlueprint(UUID.randomUUID(), seed, level, members.size(),
                 theme, layout, objective, List.copyOf(modifiers), slot,
-                allocator.originX(slot), allocator.originZ(slot));
+                allocator.originX(slot), allocator.originZ(slot), instantExtract);
         VaultInstance instance = new VaultInstance(bp, worlds.world());
         for (Player member : members) {
             instance.addMember(member);
@@ -285,7 +289,7 @@ public final class VaultInstanceManager implements Listener {
             int slot = apply ? allocator.claim() : 0;
             VaultBlueprint bp = new VaultBlueprint(UUID.randomUUID(), seed, level, 1, theme,
                     layout, objective, List.of(), slot,
-                    apply ? allocator.originX(slot) : 0, apply ? allocator.originZ(slot) : 0);
+                    apply ? allocator.originX(slot) : 0, apply ? allocator.originZ(slot) : 0, false);
             try {
                 long startNanos = System.nanoTime();
                 GenResult gen = generator.generate(bp);
@@ -332,36 +336,67 @@ public final class VaultInstanceManager implements Listener {
 
     // -------------------------------------------------------------- endings
 
-    /** The objective is met: open the exit and pay the completion XP now. */
+    /**
+     * The objective is met: pay XP now, then either open the exit pad for a
+     * walk-back finish, or — for instant-extract runs (not ESCAPE, which is
+     * already a race to a pad) — pull everyone still in the run out on the
+     * spot after a short "the vault yields" beat. Either way, the trophy
+     * crate only arrives once a player actually leaves (see extract()).
+     */
     public void completeObjective(VaultInstance instance) {
         if (instance.objectiveDone) {
             return;
         }
         instance.objectiveDone = true;
-        instance.openExit();
         int xp = config.getInt("xp.completion-base", 60)
                 + config.getInt("xp.completion-per-level", 10) * instance.blueprint().level();
         for (Player player : instance.players()) {
             levels.addXp(player, xp);
-            player.showTitle(Title.title(Text.c("§aObjective complete!"),
-                    Text.c("§7The exit pad is glowing — step on it to leave.")));
-            player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
             quests.progress(player, com.evensteven.vhlite.quest.QuestType.FIRST_DELVE, 1);
             quests.progressObjectiveType(player, instance.blueprint().objective());
-            // The completion prize: a crate holding sealed Vaultforged gear.
-            VhItems.give(player, VhItems.crate(instance.blueprint().level()));
+        }
+        if (instance.blueprint().instantExtract()) {
+            for (Player player : instance.players()) {
+                player.showTitle(Title.title(Text.c("§aObjective complete!"),
+                        Text.c("§7The vault is pulling you out in 5s...")));
+                player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+            }
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                for (Player player : new ArrayList<>(instance.players())) {
+                    if (instance.isMember(player.getUniqueId())
+                            && !instance.deadSpectators.contains(player.getUniqueId())) {
+                        extract(player, instance, "§aThe vault spits you out, spoils in hand.");
+                    }
+                }
+            }, 100L);
+        } else {
+            instance.openExit();
+            for (Player player : instance.players()) {
+                player.showTitle(Title.title(Text.c("§aObjective complete!"),
+                        Text.c("§7The exit pad is glowing — step on it to leave.")));
+                player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+            }
         }
     }
 
-    /** Clean exit through the pad (or a completed escape). No penalties. */
+    /**
+     * Clean exit through the pad (or a completed escape, or an instant-
+     * extract pull). No penalties — and this is the ONLY place the
+     * completion crate is handed out, so it's earned by getting out, not
+     * just by finishing the objective.
+     */
     public void extract(Player player, VaultInstance instance, String message) {
+        boolean escapeWin = instance.blueprint().objective() == VaultObjective.ESCAPE
+                && !instance.deadSpectators.contains(player.getUniqueId());
+        boolean won = instance.objectiveDone || escapeWin;
         settleOut(player, instance);
         if (message != null) {
             player.sendMessage(Text.c(message));
         }
-        // ESCAPE pays on successful extraction rather than at objectiveDone.
-        if (instance.blueprint().objective() == VaultObjective.ESCAPE
-                && !instance.deadSpectators.contains(player.getUniqueId())) {
+        if (won) {
+            VhItems.give(player, VhItems.crate(instance.blueprint().level()));
+        }
+        if (escapeWin) {
             int xp = config.getInt("xp.completion-base", 60)
                     + config.getInt("xp.completion-per-level", 10) * instance.blueprint().level();
             levels.addXp(player, xp);
@@ -636,6 +671,16 @@ public final class VaultInstanceManager implements Listener {
             if (event.getEntity().getUniqueId().equals(instance.bossId)) {
                 currency.addEssence(killer, 5);
                 quests.progress(killer, com.evensteven.vhlite.quest.QuestType.GUARDIAN_BANE, 1);
+            } else if (instance.isChampion(event.getEntity())) {
+                // Champions are between Elite and boss: always worth the fight.
+                currency.addEssence(killer, 3);
+                if (instance.rng.nextDouble() < 0.30) {
+                    event.getDrops().add(com.evensteven.vhlite.item.VaultGear.unidentified(
+                            instance.blueprint().level(), instance.rng, 0.2));
+                }
+                for (Player member : instance.players()) {
+                    member.sendMessage(Text.c("§d§lChampion slain §7by " + killer.getName() + "."));
+                }
             }
         }
         if (event.getEntity().getUniqueId().equals(instance.bossId)) {
@@ -689,6 +734,29 @@ public final class VaultInstanceManager implements Listener {
         // settled home so they never log into a purged region.
         settleOut(event.getPlayer(), instance);
         finishRemoval(event.getPlayer(), instance);
+    }
+
+    /**
+     * The GUI map, opened by swapping hands (F by default) while carrying a
+     * Vault Map — a literal custom keybind isn't possible without a client
+     * mod, so this rides an existing vanilla action instead. Players who
+     * want a specific key can rebind "Swap Item with Offhand" to it in
+     * Options > Controls.
+     */
+    @EventHandler
+    public void onSwapHands(org.bukkit.event.player.PlayerSwapHandItemsEvent event) {
+        Player player = event.getPlayer();
+        boolean holdingMap = VhItems.typeOf(event.getMainHandItem()) == VhItemType.VAULT_MAP
+                || VhItems.typeOf(event.getOffHandItem()) == VhItemType.VAULT_MAP;
+        if (!holdingMap) {
+            return;
+        }
+        VaultInstance instance = instanceOf(player);
+        if (instance == null) {
+            return;
+        }
+        event.setCancelled(true);
+        new VaultMapMenu(player, instance).open(player);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
