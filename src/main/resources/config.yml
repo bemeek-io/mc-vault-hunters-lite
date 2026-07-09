@@ -1,0 +1,90 @@
+# ------------------------------------------------------------------ general
+# Name of the private void world vaults are generated in. Created on startup.
+vault-world: vhlite_vaults
+# Below this vault level, dying or running out of time in a vault costs
+# nothing (keep inventory, no spirit). Checked per player, not per party.
+grace-level: 5
+
+# -------------------------------------------------------------------- altar
+altar:
+  # Any placed block of this material acts as a Vault Altar.
+  block: LODESTONE
+  # How many of each of the 4 rolled resources a crystal costs.
+  amount-base: 8
+  amount-per-level: 2
+  amount-max: 64
+  # Resource pools per tier. Tier = vault level / 5 (capped at the last tier).
+  # 4 distinct materials are picked per (player, level) - stable until level-up.
+  tiers:
+    0: [IRON_INGOT, WHEAT, LEATHER, COAL, COPPER_INGOT, BONE]
+    1: [GOLD_INGOT, ENDER_PEARL, GLOW_BERRIES, REDSTONE, LAPIS_LAZULI, HONEY_BOTTLE]
+    2: [DIAMOND, BLAZE_ROD, AMETHYST_SHARD, OBSIDIAN, GHAST_TEAR, EMERALD]
+    3: [NETHERITE_SCRAP, SHULKER_SHELL, WITHER_SKELETON_SKULL, TOTEM_OF_UNDYING, DRAGON_BREATH, SCULK]
+
+# -------------------------------------------------------------------- vault
+vault:
+  time-limit-seconds: 1200
+  time-per-extra-player: 120
+  mob-cap: 24
+  mob-cap-per-extra-player: 12
+  # Scaling per vault level of the crystal used.
+  mob-health-per-level: 0.06
+  mob-damage-per-level: 0.04
+  # Scaling per party member beyond the first.
+  mob-health-per-extra-player: 0.35
+  loot-per-extra-player: 0.5
+
+# --------------------------------------------------------------- generation
+generation:
+  # Blocks placed per tick while a vault is being applied to the world.
+  blocks-per-tick: 20000
+  # Distance between instance slots. 2048 = exactly 4 region files, so retired
+  # slots can be cleaned by deleting .mca files on startup. Do not change on a
+  # live server.
+  slot-spacing: 2048
+  multi-floor-chance: 0.30
+
+# -------------------------------------------------------------------- party
+party:
+  max-size: 4
+
+# ------------------------------------------------------------------- skills
+skills:
+  points-per-level: 1
+  max-per-stat: 20
+  strength-damage-per-point: 0.02
+  vitality-hp-per-point: 1.0
+  swiftness-speed-per-point: 0.015
+  fortune-loot-per-point: 0.04
+  resilience-armor-per-point: 0.5
+
+# ---------------------------------------------------------------- knowledge
+knowledge:
+  # A knowledge point is granted every N vault levels (plus Knowledge Stars).
+  levels-per-point: 3
+  costs:
+    backpack: 2
+    chest-linking: 3
+    ability-heal: 2
+    ability-dash: 2
+    ability-warcry: 3
+    catalysts: 3
+
+# ------------------------------------------------------------------ storage
+storage:
+  backpack-size: 27
+  max-linked-chests: 30
+
+# ------------------------------------------------------------------- spirit
+spirit:
+  essence-cost-base: 8
+  essence-cost-per-level: 2
+
+# ----------------------------------------------------------------------- xp
+xp:
+  base: 100
+  per-level: 35
+  per-mob-kill: 2
+  per-chest: 5
+  completion-base: 60
+  completion-per-level: 10

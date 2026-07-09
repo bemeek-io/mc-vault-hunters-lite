@@ -1,0 +1,22 @@
+name: VaultHuntersLite
+version: '${version}'
+main: com.evensteven.vhlite.VHLite
+api-version: '26.2'
+description: Lightweight server-side Vault Hunters. Gather resources, forge crystals at an altar, and raid procedurally generated vaults for loot, levels, and knowledge. Vanilla clients only, no client mods.
+authors: [you]
+commands:
+  vh:
+    description: Vault Hunters hub. Open menus, manage your party, or abandon a run.
+    usage: /vh [stats|skills|knowledge|storage|spirit|party|leave]
+    permission: vhlite.use
+  vhadmin:
+    description: Admin tools for Vault Hunters Lite.
+    usage: /vhadmin <give|setlevel|addknowledge|testgen|endvault|purgeslots|reload>
+    permission: vhlite.admin
+permissions:
+  vhlite.use:
+    description: Allows using Vault Hunters Lite.
+    default: true
+  vhlite.admin:
+    description: Allows Vault Hunters Lite admin commands.
+    default: op

@@ -1,0 +1,166 @@
+name: Update Discopanel Servers
+
+# Rolls the freshly released plugin jar out to every discopanel-managed
+# Minecraft server that already has VaultHuntersLite installed, via the
+# discopanel Connect API (https://docs.discopanel.app/api/):
+#   ServerService/ListServers -> ModService/ListMods (find installs)
+#   UploadService/InitUpload + PUT /api/v1/upload/{session} (stream the jar)
+#   ModService/DeleteMod (drop the old versioned jar) + ImportUploadedMod
+#   ServerService/RestartServer (only if the server is running)
+#
+# First-time installs are manual (upload once via the discopanel UI); after
+# that this workflow keeps the plugin current.
+#
+# Required secrets: DISCOPANEL_HOST, DISCOPANEL_API_TOKEN (create one in the
+# discopanel UI / AuthService.CreateAPIToken)
+
+on:
+  # Note: releases created by the release workflow's GITHUB_TOKEN do NOT emit a
+  # `release: published` event (GitHub blocks workflow-to-workflow triggering),
+  # so we chain off the release workflow's completion instead. The release
+  # trigger still covers manually published releases.
+  workflow_run:
+    workflows:
+      - Build and Release
+    types:
+      - completed
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+jobs:
+  update:
+    name: Update mod on discopanel server(s)
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    env:
+      DISCOPANEL_URL: ${{ secrets.DISCOPANEL_HOST }}
+      GH_TOKEN: ${{ github.token }}
+      # Seconds of in-game warning players get before a restart. 0 = restart
+      # immediately with no announcement.
+      RESTART_WARNING_SECONDS: '60'
+    concurrency:
+      group: deploy-vhlite
+    environment:
+      name: production
+    steps:
+      - name: Download release jar
+        run: |
+          set -euo pipefail
+          tag='${{ github.event.release.tag_name }}'
+          if [ -z "$tag" ]; then
+            tag=$(gh release view --repo '${{ github.repository }}' --json tagName -q .tagName)
+          fi
+          echo "Deploying release $tag"
+          echo "TAG=$tag" >> "$GITHUB_ENV"
+          gh release download "$tag" --repo '${{ github.repository }}' --pattern '*.jar' --dir dist
+          ls -la dist/
+
+      - name: Update plugin on discopanel servers
+        env:
+          TOKEN: ${{ secrets.DISCOPANEL_API_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          jar=$(ls dist/*.jar)
+          name=$(basename "$jar")
+          size=$(stat -c%s "$jar")
+
+          api() { # api <Service/Method> <json-body>
+            # --fail-with-body: nonzero exit on HTTP errors, but still print the
+            # Connect error JSON ({"code":...,"message":...}) for the log.
+            curl -sS --fail-with-body -X POST "$DISCOPANEL_URL/discopanel.v1.$1" \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/json" \
+              -d "$2"
+          }
+
+          # Full update flow for one server. Runs in a background subshell per
+          # server, so the restart-warning sleeps overlap instead of stacking.
+          update_server() {
+            local id="$1" sname="$2" status="$3"
+
+            # Only update servers that already have the plugin installed.
+            local mods old_ids
+            mods=$(api ModService/ListMods "{\"serverId\":\"$id\"}")
+            old_ids=$(echo "$mods" | jq -r '(.mods // [])[]
+              | select((.fileName // .file_name // "") | test("^VaultHuntersLite.*\\.jar$"))
+              | .id')
+            if [ -z "$old_ids" ]; then
+              echo "plugin not installed, skipping"
+              return 0
+            fi
+
+            echo "($status) uploading $name"
+            local session
+            session=$(api UploadService/InitUpload \
+              "{\"filename\":\"$name\",\"totalSize\":\"$size\"}" | jq -r '.sessionId')
+            curl -sS --fail-with-body -X PUT "$DISCOPANEL_URL/api/v1/upload/$session" \
+              -H "Authorization: Bearer $TOKEN" \
+              -H "Content-Type: application/octet-stream" \
+              --data-binary @"$jar" > /dev/null
+
+            local old
+            for old in $old_ids; do
+              echo "removing old jar (mod $old)"
+              api ModService/DeleteMod "{\"serverId\":\"$id\",\"modId\":\"$old\"}" > /dev/null
+            done
+
+            api ModService/ImportUploadedMod \
+              "{\"serverId\":\"$id\",\"uploadSessionId\":\"$session\"}" > /dev/null
+            echo "installed $name"
+
+            if [ "$status" = "SERVER_STATUS_RUNNING" ]; then
+              # Warn online players before pulling the rug out. A failed
+              # announcement never blocks the update itself.
+              if [ "${RESTART_WARNING_SECONDS:-0}" -gt 0 ]; then
+                local msg="Server is restarting in $RESTART_WARNING_SECONDS seconds to update VaultHuntersLite to $TAG."
+                echo "warning players, waiting ${RESTART_WARNING_SECONDS}s"
+                api ServerService/SendCommand \
+                  "{\"id\":\"$id\",\"command\":\"say $msg\"}" > /dev/null \
+                  || echo "(announcement failed; continuing)"
+                sleep "$RESTART_WARNING_SECONDS"
+                api ServerService/SendCommand \
+                  "{\"id\":\"$id\",\"command\":\"say Restarting now. Back in a minute!\"}" > /dev/null || true
+              fi
+              echo "restarting"
+              # Server lifecycle RPCs take "id", unlike the mod RPCs' "serverId".
+              api ServerService/RestartServer "{\"id\":\"$id\"}" > /dev/null
+            else
+              echo "server is $status; new jar picked up on next start"
+            fi
+          }
+
+          servers=$(api ServerService/ListServers '{}')
+          count=$(echo "$servers" | jq '.servers | length')
+          echo "discopanel reports $count server(s)"
+
+          # Fan out: one background job per server, each logging to its own
+          # file so parallel output doesn't interleave.
+          logdir=$(mktemp -d)
+          pids=() ids=() snames=()
+          for row in $(echo "$servers" | jq -r '.servers[] | @base64'); do
+            srv() { echo "$row" | base64 -d | jq -r "$1"; }
+            id=$(srv '.id')
+            sname=$(srv '.name')
+            status=$(srv '.status')
+            ( update_server "$id" "$sname" "$status" ) > "$logdir/$id.log" 2>&1 &
+            pids+=($!) ids+=("$id") snames+=("$sname")
+          done
+
+          failed=0
+          for i in "${!pids[@]}"; do
+            rc=0
+            wait "${pids[$i]}" || rc=$?
+            echo "== ${snames[$i]} =="
+            sed 's/^/   /' "$logdir/${ids[$i]}.log"
+            if [ "$rc" -ne 0 ]; then
+              echo "   FAILED (exit $rc)"
+              failed=1
+            fi
+          done
+
+          updated=$(cat "$logdir"/*.log 2>/dev/null | grep -c '^installed ' || true)
+          echo "Updated $updated server(s)."
+          exit "$failed"
