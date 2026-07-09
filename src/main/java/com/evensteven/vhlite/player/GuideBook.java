@@ -40,7 +40,7 @@ public final class GuideBook {
                     page("""
                             §5§l2. The Vault§0
 
-                            Right-click the altar holding your crystal. Inside: a time limit (boss bar), an objective, and a §dVault Map§0 that charts rooms as you explore. Use "Swap Item with Offhand" while holding it for a menu view — rebind that action to whatever key you like in Options > Controls (F by default).
+                            Right-click the altar holding your crystal. Inside: a time limit (boss bar), an objective, and a §dVault Map§0 that charts rooms as you explore. Use "Swap Item with Offhand" while holding it for a menu view — rebind that action in Options > Controls to §0G§0 (unused by default) if you'd rather not touch F.
 
                             Finish the objective: some vaults open a glowing §dexit pad§0 to walk back to, others just pull your whole party out on the spot."""),
                     page("""

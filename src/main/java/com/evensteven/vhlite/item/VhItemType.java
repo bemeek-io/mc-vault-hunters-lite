@@ -40,7 +40,8 @@ public enum VhItemType {
     VAULT_MAP(1010, Material.FILLED_MAP, "§dVault Map",
             "§7Charts the rooms your party has explored.",
             "§7\"Swap Item with Offhand\" opens it as a menu.",
-            "§8(Options > Controls to rebind that to any key.)",
+            "§8(Options > Controls — try rebinding it to G,",
+            "§8unused by default and free of side effects.)",
             "§8Fades when you leave the vault."),
     /** Rolled by VaultGear, never by VhItems.create — material varies. */
     VAULT_GEAR(1011, Material.IRON_SWORD, "§fVaultforged Gear"),
