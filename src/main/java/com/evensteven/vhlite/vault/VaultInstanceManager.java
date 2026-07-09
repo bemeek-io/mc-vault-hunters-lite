@@ -737,20 +737,23 @@ public final class VaultInstanceManager implements Listener {
     }
 
     /**
-     * The GUI map, opened by swapping hands (F by default) while carrying a
-     * Vault Map — a literal custom keybind isn't possible without a client
-     * mod, so this rides an existing vanilla action instead. Players who
-     * want a specific key can rebind "Swap Item with Offhand" to it in
-     * Options > Controls.
+     * The GUI map: right-clicking a Vault Map opens the menu view. A plain
+     * right-click on a held filled map is a complete no-op in vanilla (maps
+     * just render passively while held — no click needed, no click
+     * behavior to preserve), so this can never take away functionality
+     * players already rely on, unlike hijacking a real action such as
+     * Swap Hands.
      */
     @EventHandler
-    public void onSwapHands(org.bukkit.event.player.PlayerSwapHandItemsEvent event) {
-        Player player = event.getPlayer();
-        boolean holdingMap = VhItems.typeOf(event.getMainHandItem()) == VhItemType.VAULT_MAP
-                || VhItems.typeOf(event.getOffHandItem()) == VhItemType.VAULT_MAP;
-        if (!holdingMap) {
+    public void onMapInteract(PlayerInteractEvent event) {
+        if (event.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_AIR
+                && event.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK) {
             return;
         }
+        if (VhItems.typeOf(event.getItem()) != VhItemType.VAULT_MAP) {
+            return;
+        }
+        Player player = event.getPlayer();
         VaultInstance instance = instanceOf(player);
         if (instance == null) {
             return;

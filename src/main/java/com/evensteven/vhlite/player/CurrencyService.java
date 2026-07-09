@@ -45,6 +45,10 @@ public final class CurrencyService {
         profiles.save(profile);
         if (toast) {
             player.sendActionBar(Text.c("§3+" + amount + " Vault Essence"));
+            // The action bar text gets stomped within a second by the vault's
+            // own objective-progress line during a run, so the SOUND — not
+            // the text — is the reliable "you got essence" signal in combat.
+            player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.6f, 1.6f);
         }
     }
 
@@ -72,6 +76,7 @@ public final class CurrencyService {
         profile.vaultGoldCopper += copper;
         profiles.save(profile);
         player.sendActionBar(Text.c("§6+" + formatGold(copper) + " §6found!"));
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 0.8f);
     }
 
     public boolean spendGold(Player player, long copper) {

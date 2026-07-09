@@ -9,9 +9,9 @@ import org.bukkit.entity.Player;
  * A chest-GUI rendering of the Vault Map for players who'd rather open a
  * menu than hold up the physical map item: colored panes on a 9x5 grid
  * centered on wherever you're standing, matching the same fog-of-war and
- * room-role coloring as the held map. Opened by swapping hands (F by
- * default — rebindable to any key via Options > Controls) while carrying
- * a Vault Map.
+ * room-role coloring as the held map. Opened by right-clicking the Vault
+ * Map item — a no-op in vanilla for a held filled map, so nothing is
+ * taken away from players.
  */
 public final class VaultMapMenu extends Menu {
 
