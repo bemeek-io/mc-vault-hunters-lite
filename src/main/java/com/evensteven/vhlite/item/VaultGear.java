@@ -57,15 +57,15 @@ public final class VaultGear {
     // ------------------------------------------------------------- affixes
 
     public enum Affix {
-        VITALITY("§cVitality", true, 2.0, 6.0),
-        FORTIFIED("§9Fortified", true, 1.0, 3.0),
-        SWIFT("§bSwift", true, 0.05, 0.15),
-        SAVAGE("§4Savage", true, 0.05, 0.20),
-        FRENZIED("§eFrenzied", true, 0.05, 0.15),
-        STALWART("§7Stalwart", true, 0.1, 0.3),
-        ESSENCE_HOARDER("§3Essence Hoarder", false, 0.20, 0.60),
-        VAULTBORN("§dVaultborn", false, 0.10, 0.30),
-        SECOND_WIND("§aSecond Wind", false, 1.0, 3.0);
+        VITALITY("§cVitality", true, 2.0, 8.0),
+        FORTIFIED("§9Fortified", true, 1.0, 4.0),
+        SWIFT("§bSwift", true, 0.05, 0.20),
+        SAVAGE("§4Savage", true, 0.05, 0.35),
+        FRENZIED("§eFrenzied", true, 0.05, 0.25),
+        STALWART("§7Stalwart", true, 0.1, 0.4),
+        ESSENCE_HOARDER("§3Essence Hoarder", false, 0.20, 0.80),
+        VAULTBORN("§dVaultborn", false, 0.10, 0.50),
+        SECOND_WIND("§aSecond Wind", false, 1.0, 4.0);
 
         public final String displayName;
         /** Attribute-backed (vanilla tooltip) vs plugin-enforced (lore). */
@@ -107,9 +107,11 @@ public final class VaultGear {
         Map<Affix, Double> rolled = new EnumMap<>(Affix.class);
         for (int i = 0; i < affixCount; i++) {
             Affix affix = pool.get(i);
-            double levelFrac = Math.min(1.0, level / 20.0);
+            // Level dominates: a level-20 drop is unambiguously stronger
+            // than a level-5 drop, so gear keeps getting out-leveled.
+            double levelFrac = Math.min(1.0, level / 25.0);
             double magnitude = affix.min + (affix.max - affix.min)
-                    * (0.3 * rng.nextDouble() + 0.7 * levelFrac);
+                    * (0.15 * rng.nextDouble() + 0.85 * levelFrac);
             rolled.put(affix, Math.round(magnitude * 100.0) / 100.0);
         }
 
@@ -133,7 +135,7 @@ public final class VaultGear {
             meta.getPersistentDataContainer().set(Keys.GEAR_AFFIXES, PersistentDataType.STRING,
                     encode(rolled));
 
-            baseStats(meta, piece, tier);
+            baseStats(meta, piece, tier, level);
             for (Map.Entry<Affix, Double> entry : rolled.entrySet()) {
                 applyAttribute(meta, piece, entry.getKey(), entry.getValue());
             }
@@ -141,13 +143,20 @@ public final class VaultGear {
         return item;
     }
 
-    /** Custom modifiers wipe implicit stats; put the vanilla numbers back. */
-    private static void baseStats(org.bukkit.inventory.meta.ItemMeta meta, Piece piece, String tier) {
+    /**
+     * Custom modifiers wipe implicit stats; put the vanilla numbers back —
+     * PLUS a per-level bonus, so vault gear rapidly outgrows vanilla gear
+     * (a level-12 Vaultforged iron blade already out-damages a vanilla
+     * netherite sword) and each level bracket outgrows the last.
+     */
+    private static void baseStats(org.bukkit.inventory.meta.ItemMeta meta, Piece piece,
+            String tier, int level) {
         if (piece == Piece.SWORD) {
-            double damage = tier.equals("IRON") ? 5 : tier.equals("DIAMOND") ? 6 : 7;
+            double damage = (tier.equals("IRON") ? 5 : tier.equals("DIAMOND") ? 6 : 7)
+                    + 0.35 * level;
             meta.addAttributeModifier(Attribute.ATTACK_DAMAGE, new AttributeModifier(
-                    Keys.of("gear_base_damage"), damage, AttributeModifier.Operation.ADD_NUMBER,
-                    EquipmentSlotGroup.MAINHAND));
+                    Keys.of("gear_base_damage"), Math.round(damage * 10.0) / 10.0,
+                    AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
             meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(
                     Keys.of("gear_base_attack_speed"), -2.4, AttributeModifier.Operation.ADD_NUMBER,
                     EquipmentSlotGroup.MAINHAND));
@@ -159,15 +168,15 @@ public final class VaultGear {
             case LEGGINGS -> 2;
             default -> 3;
         };
+        double armor = ARMOR_POINTS.get(tier)[index] + 0.15 * level;
         meta.addAttributeModifier(Attribute.ARMOR, new AttributeModifier(
-                Keys.of("gear_base_armor"), ARMOR_POINTS.get(tier)[index],
+                Keys.of("gear_base_armor"), Math.round(armor * 10.0) / 10.0,
                 AttributeModifier.Operation.ADD_NUMBER, piece.slot));
-        double toughness = tier.equals("DIAMOND") ? 2 : tier.equals("NETHERITE") ? 3 : 0;
-        if (toughness > 0) {
-            meta.addAttributeModifier(Attribute.ARMOR_TOUGHNESS, new AttributeModifier(
-                    Keys.of("gear_base_toughness"), toughness,
-                    AttributeModifier.Operation.ADD_NUMBER, piece.slot));
-        }
+        double toughness = (tier.equals("DIAMOND") ? 2 : tier.equals("NETHERITE") ? 3 : 0)
+                + 0.05 * level;
+        meta.addAttributeModifier(Attribute.ARMOR_TOUGHNESS, new AttributeModifier(
+                Keys.of("gear_base_toughness"), Math.round(toughness * 10.0) / 10.0,
+                AttributeModifier.Operation.ADD_NUMBER, piece.slot));
     }
 
     private static void applyAttribute(org.bukkit.inventory.meta.ItemMeta meta,

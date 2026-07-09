@@ -75,6 +75,9 @@ public final class VHLite extends JavaPlugin {
         // --- services.
         profiles = new ProfileStore(this);
         LevelService levels = new LevelService(profiles, getConfig());
+        com.evensteven.vhlite.quest.QuestService questService =
+                new com.evensteven.vhlite.quest.QuestService(profiles);
+        levels.setQuests(questService);
         PartyService parties = new PartyService(getConfig().getInt("party.max-size", 4));
         StatService stats = new StatService(profiles, getConfig());
         AbilityService abilities = new AbilityService(profiles, parties);
@@ -85,7 +88,8 @@ public final class VHLite extends JavaPlugin {
         CrystalRecipeService crystalRecipes = new CrystalRecipeService(getConfig());
         RecipeService recipes = new RecipeService(this, profiles);
         recipes.register();
-        KnowledgeService knowledge = new KnowledgeService(profiles, getConfig(), recipes.recipeKeysByNode());
+        KnowledgeService knowledge = new KnowledgeService(profiles, getConfig(),
+                recipes.recipeKeysByNode(), questService);
 
         ScalingService scaling = new ScalingService(getConfig());
         VaultGenerator generator = new VaultGenerator(
@@ -95,7 +99,7 @@ public final class VHLite extends JavaPlugin {
         InstanceAllocator allocator = new InstanceAllocator(instanceStore,
                 getConfig().getInt("generation.slot-spacing", 2048));
         vaults = new VaultInstanceManager(this, getConfig(), worlds, allocator, instanceStore,
-                themes, generator, applier, scaling, profiles, levels, parties, spirits);
+                themes, generator, applier, scaling, profiles, levels, parties, spirits, questService);
 
         // --- listeners.
         ChatPrompt prompts = new ChatPrompt(this);
@@ -104,15 +108,17 @@ public final class VHLite extends JavaPlugin {
         pm.registerEvents(prompts, this);
         pm.registerEvents(recipes, this);
         pm.registerEvents(vaults, this);
-        pm.registerEvents(new VaultDeathListener(this, vaults, profiles, spirits, getConfig()), this);
+        pm.registerEvents(new VaultDeathListener(this, vaults, spirits, getConfig()), this);
         com.evensteven.vhlite.altar.AltarStore altarStore = new com.evensteven.vhlite.altar.AltarStore(this);
-        pm.registerEvents(new AltarListener(getConfig(), profiles, crystalRecipes, spirits, vaults, altarStore), this);
+        pm.registerEvents(new AltarListener(getConfig(), profiles, crystalRecipes, spirits, vaults,
+                altarStore, questService), this);
         pm.registerEvents(new ItemUseListener(profiles, knowledge, abilities, backpacks, links), this);
-        pm.registerEvents(new PlayerLifecycleListener(profiles, stats, recipes, parties), this);
+        pm.registerEvents(new PlayerLifecycleListener(profiles, stats, recipes, parties, questService), this);
+        pm.registerEvents(questService, this);
 
         // --- commands.
         VhCommand vh = new VhCommand(profiles, stats, knowledge, links, prompts, spirits,
-                levels, parties, vaults, getConfig());
+                levels, parties, vaults, getConfig(), questService);
         getCommand("vh").setExecutor(vh);
         getCommand("vh").setTabCompleter(vh);
         VhAdminCommand vhadmin = new VhAdminCommand(this, profiles, stats, vaults, instanceStore);

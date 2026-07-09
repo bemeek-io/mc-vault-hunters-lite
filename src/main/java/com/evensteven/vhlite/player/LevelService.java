@@ -16,10 +16,16 @@ public final class LevelService {
 
     private final ProfileStore profiles;
     private final FileConfiguration config;
+    /** Set after construction (quests are built later in the wiring order). */
+    private com.evensteven.vhlite.quest.QuestService quests;
 
     public LevelService(ProfileStore profiles, FileConfiguration config) {
         this.profiles = profiles;
         this.config = config;
+    }
+
+    public void setQuests(com.evensteven.vhlite.quest.QuestService quests) {
+        this.quests = quests;
     }
 
     public int xpForLevel(int level) {
@@ -45,6 +51,9 @@ public final class LevelService {
         }
         if (leveled) {
             profiles.save(profile);
+            if (quests != null) {
+                quests.syncLevelMilestones(player);
+            }
             player.showTitle(Title.title(Text.c("§dVault Level " + profile.vaultLevel),
                     Text.c("§7+" + config.getInt("skills.points-per-level", 1) + " skill point")));
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);

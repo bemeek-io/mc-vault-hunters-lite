@@ -28,23 +28,34 @@ public abstract class RoomBuilder {
 
     // ------------------------------------------------------------- helpers
 
-    /** Floor, ceiling, and four walls of the standard room shell. */
+    /**
+     * The room's footprint within its 19x19 box. Shapes may carve corners
+     * and edges freely but MUST keep the mid-edge door strips (local 7-11
+     * at each edge) inside the mask, because corridors punch there.
+     */
+    protected java.util.function.BiPredicate<Integer, Integer> mask = (x, z) -> true;
+
+    protected final boolean inMask(int localX, int localZ) {
+        return localX >= 0 && localX < ROOM && localZ >= 0 && localZ < ROOM
+                && mask.test(localX, localZ);
+    }
+
+    /** Floor, ceiling, and shape-hugging walls of the room shell. */
     protected void shell(BlockBuffer buf, Theme theme, Random rng, int ox, int oy, int oz, int h) {
         for (int x = 0; x < ROOM; x++) {
             for (int z = 0; z < ROOM; z++) {
+                if (!mask.test(x, z)) {
+                    continue;
+                }
                 buf.set(ox + x, oy, oz + z, theme.pick(theme.floor, rng));
                 buf.set(ox + x, oy + h + 1, oz + z, theme.pick(theme.ceiling, rng));
+                boolean wall = !inMask(x + 1, z) || !inMask(x - 1, z)
+                        || !inMask(x, z + 1) || !inMask(x, z - 1);
+                for (int y = 1; y <= h; y++) {
+                    buf.set(ox + x, oy + y, oz + z, wall ? wallOrLight(theme, rng) : GenBlocks.AIR);
+                }
             }
         }
-        for (int y = 1; y <= h; y++) {
-            for (int i = 0; i < ROOM; i++) {
-                buf.set(ox + i, oy + y, oz, wallOrLight(theme, rng));
-                buf.set(ox + i, oy + y, oz + ROOM - 1, wallOrLight(theme, rng));
-                buf.set(ox, oy + y, oz + i, wallOrLight(theme, rng));
-                buf.set(ox + ROOM - 1, oy + y, oz + i, wallOrLight(theme, rng));
-            }
-        }
-        air(buf, ox + 1, oy + 1, oz + 1, ox + ROOM - 2, oy + h, oz + ROOM - 2);
     }
 
     /** Walls get the odd embedded light so rooms are never pitch black. */
@@ -73,12 +84,13 @@ public abstract class RoomBuilder {
     /** Scatters accent clutter on the floor: never blocks doorways (kept off the midlines). */
     protected void clutter(BlockBuffer buf, Theme theme, Random rng, int ox, int oy, int oz, int amount) {
         for (int i = 0; i < amount; i++) {
-            int x = ox + 2 + rng.nextInt(ROOM - 4);
-            int z = oz + 2 + rng.nextInt(ROOM - 4);
-            if (Math.abs(x - (ox + ROOM / 2)) <= 1 || Math.abs(z - (oz + ROOM / 2)) <= 1) {
-                continue; // keep the walking lanes between doors clear
+            int lx = 2 + rng.nextInt(ROOM - 4);
+            int lz = 2 + rng.nextInt(ROOM - 4);
+            if (Math.abs(lx - ROOM / 2) <= 1 || Math.abs(lz - ROOM / 2) <= 1
+                    || !inMask(lx, lz) || !inMask(lx + 1, lz) || !inMask(lx - 1, lz)) {
+                continue; // keep the walking lanes clear, stay off the walls
             }
-            buf.set(x, oy + 1, z, theme.pick(theme.accent, rng));
+            buf.set(ox + lx, oy + 1, oz + lz, theme.pick(theme.accent, rng));
         }
     }
 
@@ -99,8 +111,15 @@ public abstract class RoomBuilder {
             quadrants[j] = tmp;
         }
         for (int f = 0; f < Math.min(count, quadrants.length); f++) {
-            int cx = ox + quadrants[f][0] + rng.nextInt(3) - 1;
-            int cz = oz + quadrants[f][1] + rng.nextInt(3) - 1;
+            int lx = quadrants[f][0] + rng.nextInt(3) - 1;
+            int lz = quadrants[f][1] + rng.nextInt(3) - 1;
+            // A set-piece needs breathing room inside the shape.
+            if (!inMask(lx, lz) || !inMask(lx + 2, lz) || !inMask(lx - 2, lz)
+                    || !inMask(lx, lz + 2) || !inMask(lx, lz - 2)) {
+                continue;
+            }
+            int cx = ox + lx;
+            int cz = oz + lz;
             switch (rng.nextInt(5)) {
                 case 0 -> { // crate pile: barrels, one of them holding loot
                     buf.set(cx, oy + 1, cz, GenBlocks.BARREL); // the loot barrel
@@ -151,22 +170,131 @@ public abstract class RoomBuilder {
         // Tall rooms get a hanging lantern or two under the ceiling.
         if (h >= 7) {
             for (int i = 0; i < 1 + rng.nextInt(2); i++) {
-                buf.set(ox + 4 + rng.nextInt(ROOM - 8), oy + h, oz + 4 + rng.nextInt(ROOM - 8),
-                        GenBlocks.LANTERN_HANGING);
+                int lx = 4 + rng.nextInt(ROOM - 8);
+                int lz = 4 + rng.nextInt(ROOM - 8);
+                if (inMask(lx, lz)) {
+                    buf.set(ox + lx, oy + h, oz + lz, GenBlocks.LANTERN_HANGING);
+                }
             }
         }
     }
 
-    /** Registers 2-4 mob spawn points and a couple of pedestal candidates. */
+    /**
+     * Registers 3-6 one-time encounter spawners plus a pedestal candidate,
+     * all inside the room's shape (a spawner in a wall spawns nothing).
+     */
     protected void marks(GenResult out, Random rng, int ox, int oy, int oz) {
-        int spawns = 2 + rng.nextInt(3);
+        int spawns = 3 + rng.nextInt(4);
         for (int i = 0; i < spawns; i++) {
-            out.mobSpawns.add(new Vec3(ox + 3 + rng.nextInt(ROOM - 6), oy + 1, oz + 3 + rng.nextInt(ROOM - 6)));
+            Vec3 spot = openSpot(rng, ox, oy, oz);
+            if (spot != null) {
+                out.mobSpawns.add(spot);
+            }
         }
-        out.pedestalCandidates.add(new Vec3(ox + 3 + rng.nextInt(ROOM - 6), oy + 1, oz + 3 + rng.nextInt(ROOM - 6)));
+        Vec3 pedestal = openSpot(rng, ox, oy, oz);
+        if (pedestal != null) {
+            out.pedestalCandidates.add(pedestal);
+        }
+    }
+
+    /** A random floor spot inside the mask, or null after a few misses. */
+    private Vec3 openSpot(Random rng, int ox, int oy, int oz) {
+        for (int attempt = 0; attempt < 8; attempt++) {
+            int lx = 3 + rng.nextInt(ROOM - 6);
+            int lz = 3 + rng.nextInt(ROOM - 6);
+            if (inMask(lx, lz) && inMask(lx + 1, lz) && inMask(lx - 1, lz)
+                    && inMask(lx, lz + 1) && inMask(lx, lz - 1)) {
+                return new Vec3(ox + lx, oy + 1, oz + lz);
+            }
+        }
+        return null;
     }
 
     // ------------------------------------------------------------ variants
+
+    /** Chamfered corners: reads as a bastion chamber, not a box. */
+    public static final class OctagonRoom extends RoomBuilder {
+        @Override
+        public int height(Random rng) {
+            return 6 + rng.nextInt(4);
+        }
+
+        @Override
+        public void build(BlockBuffer buf, Theme theme, Random rng,
+                int ox, int oy, int oz, int h, Room room, GenResult out) {
+            int chamfer = 4 + rng.nextInt(3);
+            int edge = ROOM - 1;
+            mask = (x, z) -> x + z >= chamfer && x + z <= 2 * edge - chamfer
+                    && x - z <= edge - chamfer && z - x <= edge - chamfer;
+            shell(buf, theme, rng, ox, oy, oz, h);
+            clutter(buf, theme, rng, ox, oy, oz, 3 + rng.nextInt(5));
+            features(buf, theme, rng, ox, oy, oz, h, out, 1 + rng.nextInt(2));
+            if (rng.nextInt(3) == 0) {
+                chest(buf, out, ox + ROOM / 2 + rng.nextInt(5) - 2, oy + 1,
+                        oz + ROOM / 2 + rng.nextInt(5) - 2, false);
+            }
+            marks(out, rng, ox, oy, oz);
+        }
+    }
+
+    /** A round chamber; the light ring makes it read as a rotunda. */
+    public static final class CircleRoom extends RoomBuilder {
+        @Override
+        public int height(Random rng) {
+            return 6 + rng.nextInt(5);
+        }
+
+        @Override
+        public void build(BlockBuffer buf, Theme theme, Random rng,
+                int ox, int oy, int oz, int h, Room room, GenResult out) {
+            double radius = 9.4;
+            int mid = ROOM / 2;
+            mask = (x, z) -> (x - mid) * (x - mid) + (z - mid) * (z - mid) <= radius * radius;
+            shell(buf, theme, rng, ox, oy, oz, h);
+            // Ring of lights inlaid in the floor.
+            for (int i = 0; i < 8; i++) {
+                double angle = Math.PI * 2 * i / 8;
+                int lx = mid + (int) Math.round(Math.cos(angle) * 5);
+                int lz = mid + (int) Math.round(Math.sin(angle) * 5);
+                if (inMask(lx, lz)) {
+                    buf.set(ox + lx, oy, oz + lz, theme.light);
+                }
+            }
+            clutter(buf, theme, rng, ox, oy, oz, 3 + rng.nextInt(4));
+            if (rng.nextInt(2) == 0) {
+                chest(buf, out, ox + mid, oy + 1, oz + mid, false);
+            }
+            marks(out, rng, ox, oy, oz);
+        }
+    }
+
+    /** Plus-shaped hall: four alcoves around a tight center. */
+    public static final class CrossRoom extends RoomBuilder {
+        @Override
+        public int height(Random rng) {
+            return 5 + rng.nextInt(4);
+        }
+
+        @Override
+        public void build(BlockBuffer buf, Theme theme, Random rng,
+                int ox, int oy, int oz, int h, Room room, GenResult out) {
+            int arm = 5 + rng.nextInt(2); // arm half-width start (5 or 6)
+            mask = (x, z) -> (x >= arm && x <= ROOM - 1 - arm) || (z >= arm && z <= ROOM - 1 - arm);
+            shell(buf, theme, rng, ox, oy, oz, h);
+            // A pillar guarding each inner corner of the crossing.
+            for (int[] corner : new int[][] {{arm + 1, arm + 1}, {ROOM - 2 - arm, arm + 1},
+                    {arm + 1, ROOM - 2 - arm}, {ROOM - 2 - arm, ROOM - 2 - arm}}) {
+                if (inMask(corner[0], corner[1])) {
+                    pillar(buf, theme, ox + corner[0], oy, oz + corner[1], h);
+                }
+            }
+            clutter(buf, theme, rng, ox, oy, oz, 3 + rng.nextInt(4));
+            if (rng.nextInt(3) == 0) {
+                chest(buf, out, ox + ROOM / 2, oy + 1, oz + ROOM / 2, false);
+            }
+            marks(out, rng, ox, oy, oz);
+        }
+    }
 
     /** Plain hall with random clutter; the bread-and-butter room. */
     public static final class BoxRoom extends RoomBuilder {

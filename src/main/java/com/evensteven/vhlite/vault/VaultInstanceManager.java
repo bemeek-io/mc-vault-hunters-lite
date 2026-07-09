@@ -73,6 +73,7 @@ public final class VaultInstanceManager implements Listener {
     private final LevelService levels;
     private final PartyService parties;
     private final SpiritStore spirits;
+    private final com.evensteven.vhlite.quest.QuestService quests;
     private final Random random = new Random();
 
     private final Map<UUID, VaultInstance> instances = new HashMap<>();
@@ -81,7 +82,8 @@ public final class VaultInstanceManager implements Listener {
     public VaultInstanceManager(Plugin plugin, FileConfiguration config, VaultWorldService worlds,
             InstanceAllocator allocator, InstanceStore store, ThemeRegistry themes,
             VaultGenerator generator, BlockBufferApplier applier, ScalingService scaling,
-            ProfileStore profiles, LevelService levels, PartyService parties, SpiritStore spirits) {
+            ProfileStore profiles, LevelService levels, PartyService parties, SpiritStore spirits,
+            com.evensteven.vhlite.quest.QuestService quests) {
         this.plugin = plugin;
         this.config = config;
         this.worlds = worlds;
@@ -95,6 +97,7 @@ public final class VaultInstanceManager implements Listener {
         this.levels = levels;
         this.parties = parties;
         this.spirits = spirits;
+        this.quests = quests;
     }
 
     // ------------------------------------------------------------ run start
@@ -337,6 +340,8 @@ public final class VaultInstanceManager implements Listener {
             player.showTitle(Title.title(Text.c("§aObjective complete!"),
                     Text.c("§7The exit pad is glowing — step on it to leave.")));
             player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
+            quests.progress(player, com.evensteven.vhlite.quest.QuestType.FIRST_DELVE, 1);
+            quests.progressObjectiveType(player, instance.blueprint().objective());
         }
     }
 
@@ -356,14 +361,28 @@ public final class VaultInstanceManager implements Listener {
         finishRemoval(player, instance);
     }
 
-    /** Leaving early or running out the clock: post-grace players feed a spirit. */
+    /**
+     * Leaving early or running out the clock. Same cost table as dying:
+     * by vault level and difficulty (grace / spirit / gone).
+     */
     public void abandon(Player player, VaultInstance instance, String message) {
-        boolean wasDead = instance.deadSpectators.contains(player.getUniqueId());
         settleOut(player, instance);
-        if (!wasDead && profiles.get(player).vaultLevel >= config.getInt("grace-level", 5)) {
-            spirits.capture(player, instance.blueprint().level());
+        int vaultLevel = instance.blueprint().level();
+        int grace = config.getInt("grace-level", 10);
+        boolean hardcore = config.getString("difficulty", "normal").equalsIgnoreCase("hardcore");
+        if (!hardcore && vaultLevel <= grace) {
+            // Grace: keep everything.
+        } else if (!hardcore || vaultLevel <= grace) {
+            spirits.capture(player, vaultLevel);
             player.sendMessage(Text.c("§cThe vault kept what you carried. §7Revive your spirit at a"
                     + " Vault Altar with §3Vault Essence§7."));
+        } else {
+            player.getInventory().clear();
+            player.setLevel(0);
+            player.setExp(0f);
+            player.setTotalExperience(0);
+            player.sendMessage(Text.c("§4The collapsing vault devours everything."
+                    + " §7(hardcore: no spirit above vault level " + grace + ")"));
         }
         if (message != null) {
             player.sendMessage(Text.c(message));
@@ -371,8 +390,17 @@ public final class VaultInstanceManager implements Listener {
         finishRemoval(player, instance);
     }
 
-    /** Teleport home + strip run-scoped state. */
-    private void settleOut(Player player, VaultInstance instance) {
+    /**
+     * Death exit: the respawn already placed the player home, so just strip
+     * run-scoped state and drop them from the roster (closing when empty —
+     * a solo death ends the vault).
+     */
+    public void finishDeathExit(Player player, VaultInstance instance) {
+        stripRunState(player, instance);
+        finishRemoval(player, instance);
+    }
+
+    private void stripRunState(Player player, VaultInstance instance) {
         if (instance.bossBar != null) {
             player.hideBossBar(instance.bossBar);
         }
@@ -384,6 +412,11 @@ public final class VaultInstanceManager implements Listener {
                 player.getInventory().setItem(i, null);
             }
         }
+    }
+
+    /** Teleport home + strip run-scoped state. */
+    private void settleOut(Player player, VaultInstance instance) {
+        stripRunState(player, instance);
         player.setGameMode(GameMode.SURVIVAL);
         player.setFallDistance(0f);
         player.teleport(instance.returnLocation(player.getUniqueId()));
@@ -539,6 +572,7 @@ public final class VaultInstanceManager implements Listener {
         Vec3 rel = instance.relativeOf(container.getLocation());
         if (instance.chestsOpened.add(rel)) {
             levels.addXp(player, config.getInt("xp.per-chest", 5));
+            quests.progress(player, com.evensteven.vhlite.quest.QuestType.LOOTER, 1);
         }
         if (instance.treasureLeft.remove(rel)) {
             int done = instance.objectiveTarget - instance.treasureLeft.size();
@@ -584,6 +618,10 @@ public final class VaultInstanceManager implements Listener {
                 killer.setHealth(Math.min(max != null ? max.getValue() : 20.0,
                         killer.getHealth() + secondWind));
             }
+            quests.progress(killer, com.evensteven.vhlite.quest.QuestType.CULLER, 1);
+            if (event.getEntity().getUniqueId().equals(instance.bossId)) {
+                quests.progress(killer, com.evensteven.vhlite.quest.QuestType.GUARDIAN_BANE, 1);
+            }
         }
         if (event.getEntity().getUniqueId().equals(instance.bossId)) {
             org.bukkit.inventory.ItemStack essence = VhItems.create(VhItemType.VAULT_ESSENCE);
@@ -600,6 +638,20 @@ public final class VaultInstanceManager implements Listener {
             if (instance.blueprint().objective() == VaultObjective.BOSS) {
                 completeObjective(instance);
             }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onRegen(org.bukkit.event.entity.EntityRegainHealthEvent event) {
+        if (!(event.getEntity() instanceof Player player) || instanceOf(player) == null) {
+            return;
+        }
+        // No passive healing inside vaults: bring food for saturation won't
+        // save you. Potions, golden apples, Vault Balm, Second Wind still work.
+        var reason = event.getRegainReason();
+        if (reason == org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.SATIATED
+                || reason == org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason.REGEN) {
+            event.setCancelled(true);
         }
     }
 

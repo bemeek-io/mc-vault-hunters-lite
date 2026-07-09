@@ -80,9 +80,12 @@ public final class VaultGenerator {
             case SHAFT -> room.cell.floor() == 0
                     ? new RoomBuilder.ShaftRoom(FLOOR_H)
                     : new RoomBuilder.BoxRoom(); // the upper twin is a plain room
-            case NORMAL -> switch (rng.nextInt(3)) {
+            case NORMAL -> switch (rng.nextInt(6)) {
                 case 0 -> new RoomBuilder.PillarHall();
                 case 1 -> new RoomBuilder.CavernRoom();
+                case 2 -> new RoomBuilder.OctagonRoom();
+                case 3 -> new RoomBuilder.CircleRoom();
+                case 4 -> new RoomBuilder.CrossRoom();
                 default -> new RoomBuilder.BoxRoom();
             };
         };

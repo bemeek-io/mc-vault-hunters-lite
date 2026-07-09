@@ -7,7 +7,7 @@ authors: [you]
 commands:
   vh:
     description: Vault Hunters hub. Open menus, manage your party, or abandon a run.
-    usage: /vh [stats|skills|knowledge|storage|spirit|party|leave]
+    usage: /vh [stats|skills|knowledge|quests|storage|spirit|guide|party|leave]
     permission: vhlite.use
   vhadmin:
     description: Admin tools for Vault Hunters Lite.

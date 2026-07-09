@@ -85,6 +85,15 @@ public final class ProfileStore {
             } catch (IllegalArgumentException ignored) {
             }
         }
+        profile.guideGiven = data.getBoolean("guide-given", false);
+        org.bukkit.configuration.ConfigurationSection quests =
+                data.getConfigurationSection("quest-progress");
+        if (quests != null) {
+            for (String key : quests.getKeys(false)) {
+                profile.questProgress.put(key, quests.getInt(key));
+            }
+        }
+        profile.questsCompleted.addAll(data.getStringList("quests-completed"));
         return profile;
     }
 
@@ -103,6 +112,11 @@ public final class ProfileStore {
             research.add(node.name());
         }
         data.set("research", research);
+        data.set("guide-given", profile.guideGiven);
+        for (Map.Entry<String, Integer> entry : profile.questProgress.entrySet()) {
+            data.set("quest-progress." + entry.getKey(), entry.getValue());
+        }
+        data.set("quests-completed", new ArrayList<>(profile.questsCompleted));
         try {
             data.save(fileFor(profile.id));
         } catch (IOException e) {

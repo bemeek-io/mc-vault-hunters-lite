@@ -37,11 +37,13 @@ public final class VhCommand implements TabExecutor {
     private final PartyService parties;
     private final VaultInstanceManager vaults;
     private final org.bukkit.configuration.file.FileConfiguration config;
+    private final com.evensteven.vhlite.quest.QuestService quests;
 
     public VhCommand(ProfileStore profiles, StatService stats, KnowledgeService knowledge,
             ChestLinkService links, ChatPrompt prompts, SpiritStore spirits, LevelService levels,
             PartyService parties, VaultInstanceManager vaults,
-            org.bukkit.configuration.file.FileConfiguration config) {
+            org.bukkit.configuration.file.FileConfiguration config,
+            com.evensteven.vhlite.quest.QuestService quests) {
         this.profiles = profiles;
         this.stats = stats;
         this.knowledge = knowledge;
@@ -52,6 +54,7 @@ public final class VhCommand implements TabExecutor {
         this.parties = parties;
         this.vaults = vaults;
         this.config = config;
+        this.quests = quests;
     }
 
     @Override
@@ -62,7 +65,7 @@ public final class VhCommand implements TabExecutor {
         }
         if (args.length == 0) {
             new HubMenu(player, profiles, stats, knowledge, links, prompts, spirits,
-                    levels, parties, config).open(player);
+                    levels, parties, config, quests).open(player);
             return true;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -83,6 +86,12 @@ public final class VhCommand implements TabExecutor {
                         ? "§3" + count + " spirit(s) waiting. §7Revive them at a Vault Altar."
                         : "§7You have no trapped spirits."));
             }
+            case "quests" -> new com.evensteven.vhlite.quest.QuestMenu(player, profiles, quests).open(player);
+            case "guide" -> {
+                com.evensteven.vhlite.item.VhItems.give(player,
+                        com.evensteven.vhlite.player.GuideBook.create());
+                player.sendMessage(Text.c("§7Here's a fresh copy of the guide."));
+            }
             case "party" -> party(player, args);
             case "leave" -> {
                 VaultInstance instance = vaults.instanceOf(player);
@@ -92,8 +101,8 @@ public final class VhCommand implements TabExecutor {
                     vaults.abandon(player, instance, "§7You abandoned the vault.");
                 }
             }
-            default -> player.sendMessage(Text.c(
-                    "§7/vh §8[§7stats§8|§7skills§8|§7knowledge§8|§7storage§8|§7spirit§8|§7party§8|§7leave§8]"));
+            default -> player.sendMessage(Text.c("§7/vh §8[§7stats§8|§7skills§8|§7knowledge§8|"
+                    + "§7quests§8|§7storage§8|§7spirit§8|§7guide§8|§7party§8|§7leave§8]"));
         }
         return true;
     }
@@ -131,7 +140,8 @@ public final class VhCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return filter(List.of("stats", "skills", "knowledge", "storage", "spirit", "party", "leave"), args[0]);
+            return filter(List.of("stats", "skills", "knowledge", "quests", "storage",
+                    "spirit", "guide", "party", "leave"), args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("party")) {
             return filter(List.of("invite", "accept", "decline", "leave", "kick"), args[1]);

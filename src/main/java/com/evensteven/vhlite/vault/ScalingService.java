@@ -24,13 +24,13 @@ public final class ScalingService {
     }
 
     public void scaleMob(LivingEntity mob, VaultBlueprint bp, boolean boss) {
-        double levelHp = bp.level() * config.getDouble("vault.mob-health-per-level", 0.06);
+        double levelHp = bp.level() * config.getDouble("vault.mob-health-per-level", 0.12);
         double partyHp = (bp.partySize() - 1) * config.getDouble("vault.mob-health-per-extra-player", 0.35);
         double hpScalar = (1.0 + levelHp + partyHp) * bp.modifierProduct(m -> m.mobHealthMult) - 1.0;
         if (boss) {
             hpScalar = (1.0 + hpScalar) * 4.0 - 1.0;
         }
-        double levelDmg = bp.level() * config.getDouble("vault.mob-damage-per-level", 0.04);
+        double levelDmg = bp.level() * config.getDouble("vault.mob-damage-per-level", 0.08);
         double dmgScalar = (1.0 + levelDmg) * bp.modifierProduct(m -> m.mobDamageMult) - 1.0;
         if (boss) {
             dmgScalar = (1.0 + dmgScalar) * 1.5 - 1.0;

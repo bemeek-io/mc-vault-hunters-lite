@@ -21,7 +21,8 @@ import java.util.List;
  */
 public final class EncounterTask extends BukkitRunnable {
 
-    private static final double TRIGGER_RANGE_SQ = 11 * 11;
+    /** Tight radius: spawners pop one by one as you push into a room. */
+    private static final double TRIGGER_RANGE_SQ = 8 * 8;
     private static final double ELITE_CHANCE = 0.15;
 
     private final VaultInstanceManager manager;
@@ -62,24 +63,28 @@ public final class EncounterTask extends BukkitRunnable {
                 * instance.blueprint().modifierProduct(m -> m.mobCapMult));
         int alive = instance.countAmbientMobs();
 
-        Iterator<Vec3> markers = instance.encountersLeft.iterator();
-        while (markers.hasNext() && alive < cap) {
-            Vec3 marker = markers.next();
-            Location spot = instance.worldPos(marker);
-            for (Player player : inside) {
-                if (player.getLocation().distanceSquared(spot) > TRIGGER_RANGE_SQ) {
-                    continue;
+        // At most one ambush per player per second — walking into a room
+        // pops its spawners as a rolling skirmish, not one big blob.
+        for (Player player : inside) {
+            if (alive >= cap) {
+                return;
+            }
+            Iterator<Vec3> markers = instance.encountersLeft.iterator();
+            while (markers.hasNext()) {
+                Vec3 marker = markers.next();
+                if (player.getLocation().distanceSquared(instance.worldPos(marker)) <= TRIGGER_RANGE_SQ) {
+                    markers.remove();
+                    alive += spawnGroup(instance, marker, player);
+                    break;
                 }
-                markers.remove();
-                alive += spawnGroup(instance, marker, player);
-                break;
             }
         }
     }
 
     private int spawnGroup(VaultInstance instance, Vec3 marker, Player trigger) {
+        // Smaller per-spawner groups; rooms have 3-6 spawners now.
         int level = instance.blueprint().level();
-        int size = 2 + level / 5 + instance.rng.nextInt(3);
+        int size = 1 + level / 8 + instance.rng.nextInt(3);
         size = (int) Math.max(1, Math.round(size
                 * instance.blueprint().modifierProduct(m -> m.mobCapMult)));
         int spawned = 0;

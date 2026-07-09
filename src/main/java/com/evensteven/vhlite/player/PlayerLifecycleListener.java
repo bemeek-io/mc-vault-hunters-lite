@@ -18,20 +18,32 @@ public final class PlayerLifecycleListener implements Listener {
     private final StatService stats;
     private final RecipeService recipes;
     private final PartyService parties;
+    private final com.evensteven.vhlite.quest.QuestService quests;
 
     public PlayerLifecycleListener(ProfileStore profiles, StatService stats,
-            RecipeService recipes, PartyService parties) {
+            RecipeService recipes, PartyService parties,
+            com.evensteven.vhlite.quest.QuestService quests) {
         this.profiles = profiles;
         this.stats = stats;
         this.recipes = recipes;
         this.parties = parties;
+        this.quests = quests;
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
-        profiles.get(event.getPlayer());
+        PlayerProfile profile = profiles.get(event.getPlayer());
         stats.apply(event.getPlayer());
         recipes.syncDiscovered(event.getPlayer());
+        quests.syncLevelMilestones(event.getPlayer());
+        if (!profile.guideGiven) {
+            profile.guideGiven = true;
+            profiles.save(profile);
+            com.evensteven.vhlite.item.VhItems.give(event.getPlayer(), GuideBook.create());
+            event.getPlayer().sendMessage(com.evensteven.vhlite.util.Text.c(
+                    "§5The vaults are waiting. §7Read your §dVault Hunter's Guide§7,"
+                            + " or type §e/vh quests§7 to be led there."));
+        }
     }
 
     @EventHandler

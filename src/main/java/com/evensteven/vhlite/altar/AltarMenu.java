@@ -26,14 +26,17 @@ public final class AltarMenu extends Menu {
     private final CrystalRecipeService recipes;
     private final SpiritStore spirits;
     private final FileConfiguration config;
+    private final com.evensteven.vhlite.quest.QuestService quests;
 
     public AltarMenu(Player viewer, ProfileStore profiles, CrystalRecipeService recipes,
-            SpiritStore spirits, FileConfiguration config) {
+            SpiritStore spirits, FileConfiguration config,
+            com.evensteven.vhlite.quest.QuestService quests) {
         super(viewer, 3, "§5Vault Altar");
         this.profiles = profiles;
         this.recipes = recipes;
         this.spirits = spirits;
         this.config = config;
+        this.quests = quests;
     }
 
     @Override
@@ -72,6 +75,7 @@ public final class AltarMenu extends Menu {
                     if (recipes.infuse(viewer, profiles.get(viewer))) {
                         viewer.playSound(viewer.getLocation(), Sound.BLOCK_ENCHANTMENT_TABLE_USE, 1f, 1.3f);
                         viewer.sendMessage(Text.c("§dThe altar hums. A Vault Crystal is yours."));
+                        quests.progress(viewer, com.evensteven.vhlite.quest.QuestType.FORGE_CRYSTAL, 1);
                         refresh();
                     } else {
                         viewer.playSound(viewer.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 1f, 0.6f);

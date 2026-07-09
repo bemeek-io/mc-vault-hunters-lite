@@ -30,16 +30,18 @@ public final class AltarListener implements Listener {
     private final SpiritStore spirits;
     private final VaultInstanceManager vaults;
     private final AltarStore altars;
+    private final com.evensteven.vhlite.quest.QuestService quests;
 
     public AltarListener(FileConfiguration config, ProfileStore profiles,
             CrystalRecipeService recipes, SpiritStore spirits, VaultInstanceManager vaults,
-            AltarStore altars) {
+            AltarStore altars, com.evensteven.vhlite.quest.QuestService quests) {
         this.config = config;
         this.profiles = profiles;
         this.recipes = recipes;
         this.spirits = spirits;
         this.vaults = vaults;
         this.altars = altars;
+        this.quests = quests;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -50,6 +52,7 @@ public final class AltarListener implements Listener {
         altars.add(event.getBlock().getLocation());
         event.getPlayer().sendMessage(Text.c("§5The altar settles into the ground."
                 + " §7Right-click it to begin."));
+        quests.progress(event.getPlayer(), com.evensteven.vhlite.quest.QuestType.BUILD_ALTAR, 1);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -84,6 +87,6 @@ public final class AltarListener implements Listener {
             }
             return;
         }
-        new AltarMenu(player, profiles, recipes, spirits, config).open(player);
+        new AltarMenu(player, profiles, recipes, spirits, config, quests).open(player);
     }
 }

@@ -1,9 +1,13 @@
 # ------------------------------------------------------------------ general
 # Name of the private void world vaults are generated in. Created on startup.
 vault-world: vhlite_vaults
-# Below this vault level, dying or running out of time in a vault costs
-# nothing (keep inventory, no spirit). Checked per player, not per party.
-grace-level: 5
+# Death rules, by the LEVEL OF THE VAULT you die in:
+#   normal:   vaults up to grace-level cost nothing on death/collapse;
+#             above that your carried items go to a Spirit (essence buy-back).
+#   hardcore: no grace — vaults 1..grace-level create a Spirit;
+#             above grace-level, what you carried is gone forever.
+difficulty: normal
+grace-level: 10
 
 # -------------------------------------------------------------------- altar
 altar:
@@ -27,9 +31,10 @@ vault:
   time-per-extra-player: 120
   mob-cap: 24
   mob-cap-per-extra-player: 12
-  # Scaling per vault level of the crystal used.
-  mob-health-per-level: 0.06
-  mob-damage-per-level: 0.04
+  # Scaling per vault level of the crystal used. Steep on purpose: vanilla
+  # gear should stop cutting it fast, pushing players onto Vaultforged gear.
+  mob-health-per-level: 0.12
+  mob-damage-per-level: 0.08
   # Scaling per party member beyond the first.
   mob-health-per-extra-player: 0.35
   loot-per-extra-player: 0.5

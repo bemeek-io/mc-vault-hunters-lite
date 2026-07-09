@@ -25,12 +25,15 @@ public final class KnowledgeService {
     private final FileConfiguration config;
     /** Recipes to reveal in the recipe book when a node is researched. */
     private final Map<ResearchNode, List<NamespacedKey>> recipeKeys;
+    private final com.evensteven.vhlite.quest.QuestService quests;
 
     public KnowledgeService(ProfileStore profiles, FileConfiguration config,
-            Map<ResearchNode, List<NamespacedKey>> recipeKeys) {
+            Map<ResearchNode, List<NamespacedKey>> recipeKeys,
+            com.evensteven.vhlite.quest.QuestService quests) {
         this.profiles = profiles;
         this.config = config;
         this.recipeKeys = recipeKeys;
+        this.quests = quests;
     }
 
     public int cost(ResearchNode node) {
@@ -56,6 +59,7 @@ public final class KnowledgeService {
         }
         player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 0.8f);
         player.sendMessage(Text.c("§bResearched: " + node.displayName));
+        quests.progress(player, com.evensteven.vhlite.quest.QuestType.SCHOLAR, 1);
         Bukkit.getServer().sendMessage(Text.c("§b" + player.getName()
                 + " §7unlocked " + node.displayName + "§7!"));
         return true;

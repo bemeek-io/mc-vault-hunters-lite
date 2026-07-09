@@ -23,6 +23,10 @@ public final class PlayerProfile {
     public int knowledgePoints;
     public final Map<StatType, Integer> stats = new EnumMap<>(StatType.class);
     public final Set<ResearchNode> research = EnumSet.noneOf(ResearchNode.class);
+    /** One-time hand-outs and quest bookkeeping. */
+    public boolean guideGiven;
+    public final Map<String, Integer> questProgress = new java.util.HashMap<>();
+    public final Set<String> questsCompleted = new java.util.HashSet<>();
 
     public PlayerProfile(UUID id) {
         this.id = id;

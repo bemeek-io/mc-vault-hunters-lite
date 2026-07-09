@@ -31,12 +31,14 @@ public final class HubMenu extends Menu {
     private final com.evensteven.vhlite.player.LevelService levels;
     private final com.evensteven.vhlite.player.PartyService parties;
     private final org.bukkit.configuration.file.FileConfiguration config;
+    private final com.evensteven.vhlite.quest.QuestService quests;
 
     public HubMenu(Player viewer, ProfileStore profiles, StatService stats,
             KnowledgeService knowledge, ChestLinkService links, ChatPrompt prompts,
             SpiritStore spirits, com.evensteven.vhlite.player.LevelService levels,
             com.evensteven.vhlite.player.PartyService parties,
-            org.bukkit.configuration.file.FileConfiguration config) {
+            org.bukkit.configuration.file.FileConfiguration config,
+            com.evensteven.vhlite.quest.QuestService quests) {
         super(viewer, 3, "§5Vault Hunters");
         this.profiles = profiles;
         this.stats = stats;
@@ -47,6 +49,7 @@ public final class HubMenu extends Menu {
         this.levels = levels;
         this.parties = parties;
         this.config = config;
+        this.quests = quests;
     }
 
     @Override
@@ -81,6 +84,10 @@ public final class HubMenu extends Menu {
                         viewer.sendMessage(Text.c("§cResearch §dChest Linking§c first. §7(/vh knowledge)"));
                     }
                 });
+
+        button(16, named(Material.WRITABLE_BOOK, "§6Quests",
+                        "§7Your guided tour of the vaults —", "§7auto-tracked, with rewards."),
+                event -> new com.evensteven.vhlite.quest.QuestMenu(viewer, profiles, quests).open(viewer));
 
         int spiritCount = spirits.spiritsOf(viewer.getUniqueId()).size();
         button(15, named(Material.SOUL_LANTERN,
