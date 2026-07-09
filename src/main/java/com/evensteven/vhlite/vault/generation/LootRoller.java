@@ -67,10 +67,11 @@ public final class LootRoller {
             essence.setAmount(1 + rng.nextInt(treasure ? 4 : 2));
             inv.setItem(rng.nextInt(inv.getSize()), essence);
         }
-        // Vaultforged gear: the vault-exclusive reward line.
-        if (rng.nextDouble() < (treasure ? 0.25 : 0.08) * lootMult) {
+        // Vaultforged gear is a RARE chest find — the reliable source is the
+        // Vault Crate every completion pays out.
+        if (rng.nextDouble() < (treasure ? 0.10 : 0.02) * lootMult) {
             inv.setItem(rng.nextInt(inv.getSize()),
-                    com.evensteven.vhlite.item.VaultGear.roll(level, rng, treasure ? 0.15 : 0.0));
+                    com.evensteven.vhlite.item.VaultGear.unidentified(level, rng, treasure ? 0.15 : 0.0));
         }
     }
 

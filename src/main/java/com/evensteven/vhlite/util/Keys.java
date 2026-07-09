@@ -43,6 +43,12 @@ public final class Keys {
 
     /** PDC on items: encoded vault-gear affixes ("NAME:value;NAME:value"). */
     public static NamespacedKey GEAR_AFFIXES;
+    /** PDC on unidentified gear: the roll parameters sealed inside. */
+    public static NamespacedKey GEAR_LEVEL;
+    public static NamespacedKey GEAR_BOOST;
+    public static NamespacedKey GEAR_PIECE;
+    /** PDC on vault crates: the vault level they were earned at. */
+    public static NamespacedKey CRATE_LEVEL;
 
     private static Plugin owner;
 
@@ -66,6 +72,10 @@ public final class Keys {
         MOB_BASE = new NamespacedKey(plugin, "mob_base");
         MOB_ELITE = new NamespacedKey(plugin, "mob_elite");
         GEAR_AFFIXES = new NamespacedKey(plugin, "gear_affixes");
+        GEAR_LEVEL = new NamespacedKey(plugin, "gear_level");
+        GEAR_BOOST = new NamespacedKey(plugin, "gear_boost");
+        GEAR_PIECE = new NamespacedKey(plugin, "gear_piece");
+        CRATE_LEVEL = new NamespacedKey(plugin, "crate_level");
         MOB_HEALTH = new NamespacedKey(plugin, "vault_mob_health");
         MOB_DAMAGE = new NamespacedKey(plugin, "vault_mob_damage");
         MOB_SPEED = new NamespacedKey(plugin, "vault_mob_speed");

@@ -36,7 +36,11 @@ public enum VhItemType {
     /** Rolled by VaultGear, never by VhItems.create — material varies. */
     VAULT_GEAR(1011, Material.IRON_SWORD, "§fVaultforged Gear"),
     VAULT_ALTAR(1012, Material.LODESTONE, "§5Vault Altar",
-            "§7Place it, then right-click to forge", "§7Vault Crystals and revive spirits.");
+            "§7Place it, then right-click to forge", "§7Vault Crystals and revive spirits."),
+    VAULT_CRATE(1013, Material.BARREL, "§6Vault Crate",
+            "§7Sealed spoils of a conquered vault.", "§aRight-click to pry it open."),
+    /** Created by VaultGear.unidentified — material varies by piece. */
+    UNIDENTIFIED_GEAR(1014, Material.IRON_SWORD, "§7Unidentified Gear");
 
     public final int modelData;
     public final Material material;

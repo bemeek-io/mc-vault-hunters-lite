@@ -86,6 +86,7 @@ public final class ProfileStore {
             }
         }
         profile.guideGiven = data.getBoolean("guide-given", false);
+        profile.hudEnabled = data.getBoolean("hud-enabled", true);
         org.bukkit.configuration.ConfigurationSection quests =
                 data.getConfigurationSection("quest-progress");
         if (quests != null) {
@@ -113,6 +114,7 @@ public final class ProfileStore {
         }
         data.set("research", research);
         data.set("guide-given", profile.guideGiven);
+        data.set("hud-enabled", profile.hudEnabled);
         for (Map.Entry<String, Integer> entry : profile.questProgress.entrySet()) {
             data.set("quest-progress." + entry.getKey(), entry.getValue());
         }

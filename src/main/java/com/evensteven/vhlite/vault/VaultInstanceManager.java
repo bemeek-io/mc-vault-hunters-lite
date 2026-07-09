@@ -342,6 +342,8 @@ public final class VaultInstanceManager implements Listener {
             player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1f, 1f);
             quests.progress(player, com.evensteven.vhlite.quest.QuestType.FIRST_DELVE, 1);
             quests.progressObjectiveType(player, instance.blueprint().objective());
+            // The completion prize: a crate holding sealed Vaultforged gear.
+            VhItems.give(player, VhItems.crate(instance.blueprint().level()));
         }
     }
 
@@ -599,6 +601,8 @@ public final class VaultInstanceManager implements Listener {
             return;
         }
         instance.waveMobs.remove(event.getEntity().getUniqueId());
+        // Vault mobs drop only vault things: no rotten flesh avalanche.
+        event.getDrops().clear();
         Player killer = event.getEntity().getKiller();
         if (killer != null) {
             // Vaultforged exotic affixes bend the kill economy.
@@ -629,8 +633,8 @@ public final class VaultInstanceManager implements Listener {
             event.getDrops().add(essence);
             event.getDrops().add(VhItems.catalyst(
                     VaultModifier.values()[instance.rng.nextInt(VaultModifier.values().length)]));
-            // The guardian always yields a piece of Vaultforged gear.
-            event.getDrops().add(com.evensteven.vhlite.item.VaultGear.roll(
+            // The guardian always yields a sealed piece of Vaultforged gear.
+            event.getDrops().add(com.evensteven.vhlite.item.VaultGear.unidentified(
                     instance.blueprint().level(), instance.rng, 0.35));
             for (Player member : instance.players()) {
                 member.sendMessage(Text.c(instance.blueprint().theme().bossName + " §7has fallen!"));

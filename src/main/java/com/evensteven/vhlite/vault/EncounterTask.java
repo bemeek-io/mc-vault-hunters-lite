@@ -82,20 +82,43 @@ public final class EncounterTask extends BukkitRunnable {
     }
 
     private int spawnGroup(VaultInstance instance, Vec3 marker, Player trigger) {
-        // Smaller per-spawner groups; rooms have 3-6 spawners now.
         int level = instance.blueprint().level();
         int size = 1 + level / 8 + instance.rng.nextInt(3);
+        // Archetype roll: swarms of chaff, balanced packs, or elite squads.
+        double hpMult = 1.0;
+        double dmgMult = 1.0;
+        switch (instance.rng.nextInt(4)) {
+            case 0 -> { // horde: double the bodies, each much weaker
+                size = size * 2 + 1;
+                hpMult = 0.55;
+                dmgMult = 0.75;
+            }
+            case 1 -> { // elite squad: one or two bruisers
+                size = 1 + instance.rng.nextInt(2);
+                hpMult = 1.9;
+                dmgMult = 1.35;
+            }
+            default -> {
+                // balanced pack
+            }
+        }
         size = (int) Math.max(1, Math.round(size
                 * instance.blueprint().modifierProduct(m -> m.mobCapMult)));
         int spawned = 0;
         for (int i = 0; i < size; i++) {
             // Cluster around the marker so the group reads as an ambush.
             Vec3 offset = marker.offset(instance.rng.nextInt(5) - 2, 0, instance.rng.nextInt(5) - 2);
-            boolean elite = spawned == 0 && instance.rng.nextDouble() < ELITE_CHANCE
-                    * (1.0 + level / 20.0);
+            // The squad leader: always elite in an elite squad, otherwise a
+            // level-scaled chance.
+            boolean elite = spawned == 0 && (hpMult > 1.0
+                    || instance.rng.nextDouble() < ELITE_CHANCE * (1.0 + level / 20.0));
             LivingEntity mob = instance.spawnEncounterMob(
                     safeSpot(instance, offset, marker), scaling, elite);
             if (mob != null) {
+                if (hpMult != 1.0 || dmgMult != 1.0) {
+                    scaling.tweakMob(mob, hpMult, dmgMult);
+                    com.evensteven.vhlite.vault.MobNameplates.refresh(mob);
+                }
                 spawned++;
             }
         }

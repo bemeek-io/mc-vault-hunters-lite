@@ -31,7 +31,8 @@ public final class ScalingService {
             hpScalar = (1.0 + hpScalar) * 4.0 - 1.0;
         }
         double levelDmg = bp.level() * config.getDouble("vault.mob-damage-per-level", 0.08);
-        double dmgScalar = (1.0 + levelDmg) * bp.modifierProduct(m -> m.mobDamageMult) - 1.0;
+        double partyDmg = (bp.partySize() - 1) * config.getDouble("vault.mob-damage-per-extra-player", 0.10);
+        double dmgScalar = (1.0 + levelDmg + partyDmg) * bp.modifierProduct(m -> m.mobDamageMult) - 1.0;
         if (boss) {
             dmgScalar = (1.0 + dmgScalar) * 1.5 - 1.0;
         }
@@ -44,6 +45,21 @@ public final class ScalingService {
         AttributeInstance health = mob.getAttribute(Attribute.MAX_HEALTH);
         if (health != null) {
             mob.setHealth(health.getValue()); // fresh spawn starts full
+        }
+    }
+
+    /**
+     * Per-encounter archetype tweak on top of the run scaling: hordes trade
+     * per-mob power for numbers, elite squads the reverse.
+     */
+    public void tweakMob(LivingEntity mob, double healthMult, double damageMult) {
+        applyScalar(mob, Attribute.MAX_HEALTH, com.evensteven.vhlite.util.Keys.of("mob_tweak_health"),
+                healthMult - 1.0);
+        applyScalar(mob, Attribute.ATTACK_DAMAGE, com.evensteven.vhlite.util.Keys.of("mob_tweak_damage"),
+                damageMult - 1.0);
+        AttributeInstance health = mob.getAttribute(Attribute.MAX_HEALTH);
+        if (health != null) {
+            mob.setHealth(health.getValue());
         }
     }
 

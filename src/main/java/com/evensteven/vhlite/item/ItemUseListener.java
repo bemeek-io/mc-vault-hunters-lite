@@ -29,14 +29,18 @@ public final class ItemUseListener implements Listener {
     private final AbilityService abilities;
     private final BackpackService backpacks;
     private final ChestLinkService links;
+    private final IdentifyService identify;
+    private final java.util.Random random = new java.util.Random();
 
     public ItemUseListener(ProfileStore profiles, KnowledgeService knowledge,
-            AbilityService abilities, BackpackService backpacks, ChestLinkService links) {
+            AbilityService abilities, BackpackService backpacks, ChestLinkService links,
+            IdentifyService identify) {
         this.profiles = profiles;
         this.knowledge = knowledge;
         this.abilities = abilities;
         this.backpacks = backpacks;
         this.links = links;
+        this.identify = identify;
     }
 
     @EventHandler
@@ -74,6 +78,14 @@ public final class ItemUseListener implements Listener {
                 held.setAmount(held.getAmount() - 1);
                 knowledge.consumeStar(player);
             }
+            case UNIDENTIFIED_GEAR -> {
+                event.setCancelled(true);
+                identify.begin(player, held);
+            }
+            case VAULT_CRATE -> {
+                event.setCancelled(true);
+                openCrate(player, held);
+            }
             case ABILITY_HEAL, ABILITY_DASH, ABILITY_WARCRY -> {
                 if (abilities.use(player, type)) {
                     event.setCancelled(true);
@@ -87,6 +99,24 @@ public final class ItemUseListener implements Listener {
                 }
             }
         }
+    }
+
+    /** Vault Crates: the completion reward. Always gear, plus trimmings. */
+    private void openCrate(Player player, ItemStack crate) {
+        int level = VhItems.crateLevel(crate);
+        crate.setAmount(crate.getAmount() - 1);
+        player.playSound(player.getLocation(), org.bukkit.Sound.BLOCK_BARREL_OPEN, 1f, 0.9f);
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ITEM_PICKUP, 1f, 0.7f);
+        VhItems.give(player, VaultGear.unidentified(level, random, 0.5));
+        ItemStack essence = VhItems.create(VhItemType.VAULT_ESSENCE);
+        essence.setAmount(2 + random.nextInt(3));
+        VhItems.give(player, essence);
+        if (random.nextInt(4) == 0) {
+            VhItems.give(player, VhItems.catalyst(
+                    com.evensteven.vhlite.vault.modifier.VaultModifier.values()[random.nextInt(
+                            com.evensteven.vhlite.vault.modifier.VaultModifier.values().length)]));
+        }
+        player.sendMessage(Text.c("§6The crate creaks open... §7something sealed is inside."));
     }
 
     @EventHandler(ignoreCancelled = true)

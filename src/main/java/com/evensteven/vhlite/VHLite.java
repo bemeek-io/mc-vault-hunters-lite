@@ -112,13 +112,19 @@ public final class VHLite extends JavaPlugin {
         com.evensteven.vhlite.altar.AltarStore altarStore = new com.evensteven.vhlite.altar.AltarStore(this);
         pm.registerEvents(new AltarListener(getConfig(), profiles, crystalRecipes, spirits, vaults,
                 altarStore, questService), this);
-        pm.registerEvents(new ItemUseListener(profiles, knowledge, abilities, backpacks, links), this);
+        com.evensteven.vhlite.item.IdentifyService identify =
+                new com.evensteven.vhlite.item.IdentifyService(this, questService);
+        pm.registerEvents(new ItemUseListener(profiles, knowledge, abilities, backpacks, links,
+                identify), this);
         pm.registerEvents(new PlayerLifecycleListener(profiles, stats, recipes, parties, questService), this);
         pm.registerEvents(questService, this);
 
         // --- commands.
+        com.evensteven.vhlite.player.HudService hud =
+                new com.evensteven.vhlite.player.HudService(profiles, levels);
+        hud.runTaskTimer(this, 20L, 20L);
         VhCommand vh = new VhCommand(profiles, stats, knowledge, links, prompts, spirits,
-                levels, parties, vaults, getConfig(), questService);
+                levels, parties, vaults, getConfig(), questService, hud);
         getCommand("vh").setExecutor(vh);
         getCommand("vh").setTabCompleter(vh);
         VhAdminCommand vhadmin = new VhAdminCommand(this, profiles, stats, vaults, instanceStore);

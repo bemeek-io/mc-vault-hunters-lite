@@ -1,0 +1,13 @@
+{
+  "model": {
+    "type": "minecraft:range_dispatch",
+    "property": "minecraft:custom_model_data",
+    "fallback": { "type": "minecraft:model", "model": "minecraft:item/ghast_tear" },
+    "entries": [
+      {
+        "threshold": 1007,
+        "model": { "type": "minecraft:model", "model": "vhlite:item/vault_balm" }
+      }
+    ]
+  }
+}

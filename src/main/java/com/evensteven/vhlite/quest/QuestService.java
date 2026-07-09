@@ -118,17 +118,17 @@ public final class QuestService implements Listener {
             case CULLER -> giveCatalyst(player);
             case APPRENTICE -> profile.skillPoints += 2;
             case VAULTFORGED -> VhItems.give(player,
-                    VaultGear.roll(Math.max(1, profile.vaultLevel), random, 0.3));
+                    VaultGear.unidentified(Math.max(1, profile.vaultLevel), random, 0.3));
             case JOURNEYMAN -> giveStars(player, 2);
             case SPECIALIST -> VhItems.give(player,
-                    VaultGear.roll(Math.max(1, profile.vaultLevel), random, 1.0));
+                    VaultGear.unidentified(Math.max(1, profile.vaultLevel), random, 1.0));
             case GUARDIAN_BANE -> {
                 giveEssence(player, 16);
                 giveCatalyst(player);
             }
             case MASTER -> {
                 giveStars(player, 3);
-                VhItems.give(player, VaultGear.roll(Math.max(1, profile.vaultLevel), random, 1.0));
+                VhItems.give(player, VaultGear.unidentified(Math.max(1, profile.vaultLevel), random, 1.0));
             }
         }
     }

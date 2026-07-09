@@ -90,10 +90,56 @@ public final class VaultGear {
     // --------------------------------------------------------------- roll
 
     /**
+     * The DROP form: a sealed piece whose stats are unknown until the player
+     * right-clicks to identify it. The roll parameters (level, boost, which
+     * piece) are stamped into PDC; the actual affixes don't exist yet.
+     */
+    public static ItemStack unidentified(int level, Random rng, double rarityBoost) {
+        Piece piece = Piece.values()[rng.nextInt(Piece.values().length)];
+        String tier = level < 8 ? "IRON" : level < 16 ? "DIAMOND" : "NETHERITE";
+        ItemStack item = new ItemStack(Material.valueOf(tier + "_" + piece.name()));
+        item.editMeta(meta -> {
+            meta.displayName(Text.item("§7Unidentified Vault " + piece.label));
+            meta.lore(Text.lore("§8Level " + level + " — sealed by the vault.",
+                    "§dRight-click to identify."));
+            meta.setEnchantmentGlintOverride(true);
+            meta.getPersistentDataContainer().set(Keys.ITEM_TYPE, PersistentDataType.STRING,
+                    VhItemType.UNIDENTIFIED_GEAR.name());
+            meta.getPersistentDataContainer().set(Keys.GEAR_LEVEL, PersistentDataType.INTEGER, level);
+            meta.getPersistentDataContainer().set(Keys.GEAR_BOOST, PersistentDataType.DOUBLE, rarityBoost);
+            meta.getPersistentDataContainer().set(Keys.GEAR_PIECE, PersistentDataType.STRING, piece.name());
+        });
+        return item;
+    }
+
+    /** Cracks an unidentified piece open into its real, rolled form. */
+    public static ItemStack identify(ItemStack sealed, Random rng) {
+        var pdc = sealed.getItemMeta().getPersistentDataContainer();
+        int level = pdc.getOrDefault(Keys.GEAR_LEVEL, PersistentDataType.INTEGER, 1);
+        double boost = pdc.getOrDefault(Keys.GEAR_BOOST, PersistentDataType.DOUBLE, 0.0);
+        Piece piece;
+        try {
+            piece = Piece.valueOf(pdc.getOrDefault(Keys.GEAR_PIECE, PersistentDataType.STRING, "SWORD"));
+        } catch (IllegalArgumentException ex) {
+            piece = Piece.SWORD;
+        }
+        return roll(piece, level, rng, boost);
+    }
+
+    /** A random affix label, for the identification slot-machine flair. */
+    public static String randomAffixName(Random rng) {
+        Affix affix = Affix.values()[rng.nextInt(Affix.values().length)];
+        return affix.displayName;
+    }
+
+    /**
      * @param rarityBoost 0 for chest loot, higher for treasure/boss drops.
      */
     public static ItemStack roll(int level, Random rng, double rarityBoost) {
-        Piece piece = Piece.values()[rng.nextInt(Piece.values().length)];
+        return roll(Piece.values()[rng.nextInt(Piece.values().length)], level, rng, rarityBoost);
+    }
+
+    private static ItemStack roll(Piece piece, int level, Random rng, double rarityBoost) {
         String tier = level < 8 ? "IRON" : level < 16 ? "DIAMOND" : "NETHERITE";
         Material material = Material.valueOf(tier + "_" + piece.name());
 

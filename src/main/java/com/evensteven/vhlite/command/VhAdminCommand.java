@@ -87,7 +87,7 @@ public final class VhAdminCommand implements TabExecutor {
             case "backpack" -> VhItems.give(player, VhItems.backpack());
             case "wand" -> VhItems.give(player, VhItems.create(VhItemType.LINK_WAND));
             case "altar" -> VhItems.give(player, VhItems.create(VhItemType.VAULT_ALTAR));
-            case "gear" -> VhItems.give(player, com.evensteven.vhlite.item.VaultGear.roll(
+            case "gear" -> VhItems.give(player, com.evensteven.vhlite.item.VaultGear.unidentified(
                     Math.max(1, amount), new java.util.Random(), 0.5));
             case "heal" -> VhItems.give(player, VhItems.create(VhItemType.ABILITY_HEAL));
             case "dash" -> VhItems.give(player, VhItems.create(VhItemType.ABILITY_DASH));

@@ -38,12 +38,14 @@ public final class VhCommand implements TabExecutor {
     private final VaultInstanceManager vaults;
     private final org.bukkit.configuration.file.FileConfiguration config;
     private final com.evensteven.vhlite.quest.QuestService quests;
+    private final com.evensteven.vhlite.player.HudService hud;
 
     public VhCommand(ProfileStore profiles, StatService stats, KnowledgeService knowledge,
             ChestLinkService links, ChatPrompt prompts, SpiritStore spirits, LevelService levels,
             PartyService parties, VaultInstanceManager vaults,
             org.bukkit.configuration.file.FileConfiguration config,
-            com.evensteven.vhlite.quest.QuestService quests) {
+            com.evensteven.vhlite.quest.QuestService quests,
+            com.evensteven.vhlite.player.HudService hud) {
         this.profiles = profiles;
         this.stats = stats;
         this.knowledge = knowledge;
@@ -55,6 +57,7 @@ public final class VhCommand implements TabExecutor {
         this.vaults = vaults;
         this.config = config;
         this.quests = quests;
+        this.hud = hud;
     }
 
     @Override
@@ -87,6 +90,7 @@ public final class VhCommand implements TabExecutor {
                         : "§7You have no trapped spirits."));
             }
             case "quests" -> new com.evensteven.vhlite.quest.QuestMenu(player, profiles, quests).open(player);
+            case "hud" -> hud.toggle(player);
             case "guide" -> {
                 com.evensteven.vhlite.item.VhItems.give(player,
                         com.evensteven.vhlite.player.GuideBook.create());
@@ -141,7 +145,7 @@ public final class VhCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             return filter(List.of("stats", "skills", "knowledge", "quests", "storage",
-                    "spirit", "guide", "party", "leave"), args[0]);
+                    "spirit", "guide", "hud", "party", "leave"), args[0]);
         }
         if (args.length == 2 && args[0].equalsIgnoreCase("party")) {
             return filter(List.of("invite", "accept", "decline", "leave", "kick"), args[1]);

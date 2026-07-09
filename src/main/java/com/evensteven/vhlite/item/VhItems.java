@@ -134,6 +134,24 @@ public final class VhItems {
         return id == null ? null : UUID.fromString(id);
     }
 
+    // --------------------------------------------------------------- crates
+
+    public static ItemStack crate(int level) {
+        ItemStack item = create(VhItemType.VAULT_CRATE);
+        item.editMeta(meta -> {
+            meta.displayName(Text.item("§6Vault Crate §7(Level " + level + ")"));
+            meta.setEnchantmentGlintOverride(true);
+            meta.getPersistentDataContainer().set(Keys.CRATE_LEVEL, PersistentDataType.INTEGER, level);
+        });
+        return item;
+    }
+
+    public static int crateLevel(ItemStack crate) {
+        Integer level = crate.getItemMeta().getPersistentDataContainer()
+                .get(Keys.CRATE_LEVEL, PersistentDataType.INTEGER);
+        return level == null ? 1 : level;
+    }
+
     // -------------------------------------------------------------- helpers
 
     /** Removes {@code amount} custom items of the given type; false if short. */

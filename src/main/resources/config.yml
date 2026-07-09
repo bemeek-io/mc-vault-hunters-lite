@@ -37,6 +37,7 @@ vault:
   mob-damage-per-level: 0.08
   # Scaling per party member beyond the first.
   mob-health-per-extra-player: 0.35
+  mob-damage-per-extra-player: 0.10
   loot-per-extra-player: 0.5
 
 # --------------------------------------------------------------- generation
